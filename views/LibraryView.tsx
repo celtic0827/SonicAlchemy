@@ -30,6 +30,9 @@ const LibraryView: React.FC<LibraryViewProps> = ({
     return (saved === 'grid' || saved === 'list') ? saved : 'grid';
   });
 
+  // Track currently playing audio ID to ensure only one plays at a time
+  const [playingTrackId, setPlayingTrackId] = useState<string | null>(null);
+
   // Persist change
   const handleSetViewMode = (mode: 'grid' | 'list') => {
     setViewMode(mode);
@@ -40,6 +43,14 @@ const LibraryView: React.FC<LibraryViewProps> = ({
     if (selectedTags.length === 0) return true;
     return selectedTags.every(tag => track.tags.includes(tag));
   });
+
+  const handlePlayTrack = (id: string) => {
+    setPlayingTrackId(id);
+  };
+
+  const handleStopTrack = () => {
+    setPlayingTrackId(null);
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-20 w-full">
@@ -102,6 +113,9 @@ const LibraryView: React.FC<LibraryViewProps> = ({
                   isInMixingQueue={mixingQueue.includes(track.id)}
                   onToggleQueue={onToggleQueue}
                   onDelete={onDeleteTrack}
+                  playingTrackId={playingTrackId}
+                  onPlay={handlePlayTrack}
+                  onStop={handleStopTrack}
                 />
               ))}
             </div>
@@ -115,6 +129,9 @@ const LibraryView: React.FC<LibraryViewProps> = ({
                   isInMixingQueue={mixingQueue.includes(track.id)}
                   onToggleQueue={onToggleQueue}
                   onDelete={onDeleteTrack}
+                  playingTrackId={playingTrackId}
+                  onPlay={handlePlayTrack}
+                  onStop={handleStopTrack}
                 />
               ))}
             </div>

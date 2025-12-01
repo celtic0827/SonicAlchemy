@@ -1,5 +1,4 @@
-
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Track } from '../types';
 import { Play, Pause, Plus, Check, Trash2 } from 'lucide-react';
 
@@ -9,17 +8,34 @@ interface TrackRowProps {
   isInMixingQueue: boolean;
   onToggleQueue: (id: string, e: React.MouseEvent) => void;
   onDelete: (id: string) => void;
+  playingTrackId: string | null;
+  onPlay: (id: string) => void;
+  onStop: () => void;
 }
 
-const TrackRow: React.FC<TrackRowProps> = ({ track, onClick, isInMixingQueue, onToggleQueue, onDelete }) => {
-  const [isPlaying, setIsPlaying] = useState(false);
+const TrackRow: React.FC<TrackRowProps> = ({ 
+  track, 
+  onClick, 
+  isInMixingQueue, 
+  onToggleQueue, 
+  onDelete,
+  playingTrackId,
+  onPlay,
+  onStop
+}) => {
   const audioRef = useRef<HTMLAudioElement>(null);
+  const isPlaying = playingTrackId === track.id;
 
   useEffect(() => {
-    return () => {
-      if (audioRef.current) audioRef.current.pause();
-    };
-  }, []);
+    if (isPlaying) {
+      audioRef.current?.play().catch(e => {
+        console.warn("Playback failed", e);
+        onStop();
+      });
+    } else {
+      audioRef.current?.pause();
+    }
+  }, [isPlaying, onStop]);
 
   const handlePlayToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -28,11 +44,9 @@ const TrackRow: React.FC<TrackRowProps> = ({ track, onClick, isInMixingQueue, on
       return;
     }
     if (isPlaying) {
-      audioRef.current?.pause();
-      setIsPlaying(false);
+      onStop();
     } else {
-      audioRef.current?.play();
-      setIsPlaying(true);
+      onPlay(track.id);
     }
   };
 
@@ -50,8 +64,7 @@ const TrackRow: React.FC<TrackRowProps> = ({ track, onClick, isInMixingQueue, on
         <audio 
           ref={audioRef} 
           src={track.audioUrl} 
-          onEnded={() => setIsPlaying(false)}
-          onPause={() => setIsPlaying(false)}
+          onEnded={onStop}
         />
       )}
 
