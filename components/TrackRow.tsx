@@ -70,34 +70,27 @@ const TrackRow: React.FC<TrackRowProps> = ({ track, onClick, isInMixingQueue, on
         </div>
       </div>
 
-      {/* Title */}
+      {/* Title - Dynamic Width & Truncation */}
       <div className="flex-1 min-w-0 mr-4">
-        <h4 className={`text-sm font-medium truncate ${isPlaying ? 'text-amber-400' : 'text-slate-200 group-hover:text-white'}`}>
+        <h4 
+            className={`text-sm font-medium truncate ${isPlaying ? 'text-amber-400' : 'text-slate-200 group-hover:text-white'}`}
+            title={track.title}
+        >
           {track.title}
         </h4>
       </div>
 
-      {/* Prompt Preview (Desktop only) */}
-      <div className="hidden md:block flex-[2] mr-4">
-        <p className="text-xs text-slate-500 truncate group-hover:text-slate-400 transition-colors">
-          {track.prompt}
-        </p>
-      </div>
-
-      {/* Tags (Desktop only) */}
-      <div className="hidden lg:flex gap-1 mr-4 w-48 overflow-hidden">
-        {track.tags.slice(0, 2).map(tag => (
-          <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-400 whitespace-nowrap">
+      {/* Tags - Hidden on small, Restricted width on large */}
+      <div className="hidden md:flex gap-1 mr-4 max-w-[200px] lg:max-w-[300px] xl:max-w-[400px] overflow-hidden justify-end">
+        {track.tags.map(tag => (
+          <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-400 whitespace-nowrap shrink-0">
             {tag}
           </span>
         ))}
-        {track.tags.length > 2 && (
-            <span className="text-[10px] text-slate-600 self-center">+{track.tags.length - 2}</span>
-        )}
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 shrink-0">
         <button
           onClick={(e) => onToggleQueue(track.id, e)}
           className={`p-1.5 rounded-md border transition-all ${

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Track } from '../types';
 import TrackCard from '../components/TrackCard';
 import TrackRow from '../components/TrackRow';
@@ -25,7 +25,17 @@ const LibraryView: React.FC<LibraryViewProps> = ({
   onToggleQueue,
   onDeleteTrack
 }) => {
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  // Initialize from localStorage or default to 'grid'
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
+    const saved = localStorage.getItem('libraryViewMode');
+    return (saved === 'grid' || saved === 'list') ? saved : 'grid';
+  });
+
+  // Persist change
+  const handleSetViewMode = (mode: 'grid' | 'list') => {
+    setViewMode(mode);
+    localStorage.setItem('libraryViewMode', mode);
+  };
 
   const filteredTracks = tracks.filter(track => {
     if (selectedTags.length === 0) return true;
@@ -55,13 +65,13 @@ const LibraryView: React.FC<LibraryViewProps> = ({
         
         <div className="flex bg-slate-900 p-1 rounded-lg border border-slate-800">
           <button 
-            onClick={() => setViewMode('grid')}
+            onClick={() => handleSetViewMode('grid')}
             className={`p-2 rounded transition-all ${viewMode === 'grid' ? 'bg-slate-800 text-amber-500 shadow-sm' : 'text-slate-600 hover:text-slate-400'}`}
           >
             <LayoutGrid size={18} />
           </button>
           <button 
-            onClick={() => setViewMode('list')}
+            onClick={() => handleSetViewMode('list')}
             className={`p-2 rounded transition-all ${viewMode === 'list' ? 'bg-slate-800 text-amber-500 shadow-sm' : 'text-slate-600 hover:text-slate-400'}`}
           >
             <List size={18} />
