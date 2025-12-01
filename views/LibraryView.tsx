@@ -239,28 +239,34 @@ const LibraryView: React.FC<LibraryViewProps> = ({
         />
         
         {/* BPM Filter Bar */}
-        <div className="flex flex-wrap items-center gap-4 text-xs relative">
-           <div className="flex items-center gap-2 text-slate-500 bg-slate-950 p-1.5 rounded border border-slate-800 shrink-0">
-             <Activity size={14} className="text-amber-600" />
-             <span className="font-bold uppercase tracking-wider text-[10px]">Tempo</span>
-           </div>
+        <div className="flex flex-wrap items-center gap-4 text-xs">
            
-           <div className="flex items-center gap-2">
+           {/* Unified Control Bar for Tempo - Removed overflow-hidden to allow dropdowns */}
+           <div className="flex items-center bg-slate-950 border border-slate-800 rounded-md shadow-sm relative">
+             
+             {/* Label */}
+             <div className="flex items-center gap-2 px-3 py-2 bg-slate-900/50 border-r border-slate-800 text-slate-500 rounded-l-md">
+                <Activity size={14} className="text-amber-600" />
+                <span className="font-bold uppercase tracking-wider text-[10px]">Tempo</span>
+             </div>
+
              {/* Min Selector */}
-             <div className="relative">
+             {/* Removed 'relative' so popup anchors to the main bar, preventing left overflow on mobile */}
+             <div className="border-r border-slate-800">
                 <button 
                   onClick={() => setActiveBpmSelector(activeBpmSelector === 'min' ? null : 'min')}
-                  className={`w-24 flex items-center justify-between bg-slate-900 border rounded px-3 py-2 text-slate-200 focus:outline-none font-mono text-xs transition-colors ${activeBpmSelector === 'min' ? 'border-amber-500 text-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.2)]' : 'border-slate-800 hover:border-slate-600'}`}
+                  className={`flex items-center justify-between px-3 py-2 min-w-[90px] text-slate-200 focus:outline-none font-mono text-xs transition-colors hover:bg-slate-900 ${activeBpmSelector === 'min' ? 'text-amber-500 bg-amber-950/20' : ''}`}
                 >
-                    <span className="truncate">Min: {bpmMin ?? 'Any'}</span>
-                    <ChevronDown size={12} className={`shrink-0 ml-1 transition-transform ${activeBpmSelector === 'min' ? 'rotate-180' : ''}`} />
+                    <span className={bpmMin ? 'text-amber-500 font-bold' : 'text-slate-500'}>
+                        {bpmMin ? `${bpmMin}` : 'Min'}
+                    </span>
+                    <ChevronDown size={10} className={`shrink-0 ml-2 transition-transform opacity-50 ${activeBpmSelector === 'min' ? 'rotate-180 text-amber-500 opacity-100' : ''}`} />
                 </button>
                 
-                {/* Min Popover */}
                 {activeBpmSelector === 'min' && (
                     <>
                     <div className="fixed inset-0 z-30" onClick={() => setActiveBpmSelector(null)}></div>
-                    <div className="absolute top-full mt-2 left-0 w-72 bg-slate-950 border border-amber-900/50 rounded-lg shadow-2xl z-40 p-3 grid grid-cols-4 gap-2 animate-in fade-in zoom-in-95 duration-200">
+                    <div className="absolute top-full mt-2 right-0 w-72 bg-slate-950 border border-amber-900/50 rounded-lg shadow-2xl z-40 p-3 grid grid-cols-4 gap-2 animate-in fade-in zoom-in-95 duration-200">
                         <button 
                             onClick={() => { setBpmMin(null); setActiveBpmSelector(null); }}
                             className={`col-span-4 p-2 text-center text-[10px] uppercase font-bold tracking-widest rounded border border-slate-800 hover:bg-slate-900 transition-colors ${bpmMin === null ? 'bg-amber-950/30 text-amber-500 border-amber-500/30' : 'text-slate-500'}`}
@@ -287,23 +293,23 @@ const LibraryView: React.FC<LibraryViewProps> = ({
                 )}
              </div>
 
-             <span className="text-slate-600">-</span>
-
              {/* Max Selector */}
-             <div className="relative">
+             {/* Removed 'relative' for consistency */}
+             <div className="">
                 <button 
                   onClick={() => setActiveBpmSelector(activeBpmSelector === 'max' ? null : 'max')}
-                  className={`w-24 flex items-center justify-between bg-slate-900 border rounded px-3 py-2 text-slate-200 focus:outline-none font-mono text-xs transition-colors ${activeBpmSelector === 'max' ? 'border-amber-500 text-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.2)]' : 'border-slate-800 hover:border-slate-600'}`}
+                  className={`flex items-center justify-between px-3 py-2 min-w-[90px] text-slate-200 focus:outline-none font-mono text-xs transition-colors hover:bg-slate-900 rounded-r-md ${activeBpmSelector === 'max' ? 'text-amber-500 bg-amber-950/20' : ''}`}
                 >
-                    <span className="truncate">Max: {bpmMax ?? 'Any'}</span>
-                    <ChevronDown size={12} className={`shrink-0 ml-1 transition-transform ${activeBpmSelector === 'max' ? 'rotate-180' : ''}`} />
+                    <span className={bpmMax ? 'text-amber-500 font-bold' : 'text-slate-500'}>
+                        {bpmMax ? `${bpmMax}` : 'Max'}
+                    </span>
+                    <ChevronDown size={10} className={`shrink-0 ml-2 transition-transform opacity-50 ${activeBpmSelector === 'max' ? 'rotate-180 text-amber-500 opacity-100' : ''}`} />
                 </button>
 
-                {/* Max Popover */}
                 {activeBpmSelector === 'max' && (
                     <>
                     <div className="fixed inset-0 z-30" onClick={() => setActiveBpmSelector(null)}></div>
-                    <div className="absolute top-full mt-2 left-0 w-72 bg-slate-950 border border-amber-900/50 rounded-lg shadow-2xl z-40 p-3 grid grid-cols-4 gap-2 animate-in fade-in zoom-in-95 duration-200">
+                    <div className="absolute top-full mt-2 right-0 w-72 bg-slate-950 border border-amber-900/50 rounded-lg shadow-2xl z-40 p-3 grid grid-cols-4 gap-2 animate-in fade-in zoom-in-95 duration-200">
                         <button 
                             onClick={() => { setBpmMax(null); setActiveBpmSelector(null); }}
                             className={`col-span-4 p-2 text-center text-[10px] uppercase font-bold tracking-widest rounded border border-slate-800 hover:bg-slate-900 transition-colors ${bpmMax === null ? 'bg-amber-950/30 text-amber-500 border-amber-500/30' : 'text-slate-500'}`}
