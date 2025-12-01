@@ -23,7 +23,7 @@ const LibraryView: React.FC<LibraryViewProps> = ({
   mixingQueue,
   onToggleTag, 
   onSelectTrack, 
-  onToggleQueue,
+  onToggleQueue, 
   onDeleteTrack
 }) => {
   // View Mode Persistance
@@ -98,20 +98,14 @@ const LibraryView: React.FC<LibraryViewProps> = ({
   const handleTrackClick = (id: string) => {
     // Just select it for preview (waveform update)
     setSelectedTrackId(id);
-    // If you want to navigate to detail view on double click, that could be logic here,
-    // but originally 'onSelectTrack' was for Detail View. 
-    // Let's keep detail view navigation separate? 
-    // The prompt implies "Select music in list...".
-    // Let's assume single click selects, maybe double click or a button goes to detail?
-    // For now, let's override the 'onSelectTrack' prop usage. 
-    // Wait, the prop `onSelectTrack` from App.tsx navigates to DetailView.
-    // If we want the bottom player features, we shouldn't navigate away immediately.
-    // Let's use a "Detail" button or Double Click to navigate.
-    // For now, single click = Select for Player.
   };
 
   const handleNavigateToDetail = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
+    onSelectTrack(id);
+  }
+
+  const handleInspect = (id: string) => {
     onSelectTrack(id);
   }
 
@@ -227,28 +221,20 @@ const LibraryView: React.FC<LibraryViewProps> = ({
           ) : (
             <div className="space-y-1 w-full">
               {filteredTracks.map(track => (
-                <div key={track.id} className="relative group/row">
-                    <TrackRow
-                        track={track}
-                        onClick={handleTrackClick}
-                        isInMixingQueue={mixingQueue.includes(track.id)}
-                        onToggleQueue={onToggleQueue}
-                        onDelete={onDeleteTrack}
-                        selectedTrackId={selectedTrackId}
-                        playingTrackId={playingTrackId}
-                        isPlaying={isPlaying}
-                        onPlay={handlePlay}
-                        onPause={handlePause}
-                    />
-                     {/* Hover Inspect Button */}
-                     <button 
-                        onClick={(e) => handleNavigateToDetail(e, track.id)}
-                        className="absolute right-14 top-1/2 -translate-y-1/2 p-1.5 rounded-md border border-slate-800 text-slate-600 hover:text-white hover:border-slate-500 hover:bg-slate-900 transition-all opacity-0 group-hover/row:opacity-100 hidden md:block"
-                        title="View Details"
-                    >
-                        <List size={14} />
-                    </button>
-                </div>
+                <TrackRow
+                    key={track.id}
+                    track={track}
+                    onClick={handleTrackClick}
+                    onInspect={handleInspect}
+                    isInMixingQueue={mixingQueue.includes(track.id)}
+                    onToggleQueue={onToggleQueue}
+                    onDelete={onDeleteTrack}
+                    selectedTrackId={selectedTrackId}
+                    playingTrackId={playingTrackId}
+                    isPlaying={isPlaying}
+                    onPlay={handlePlay}
+                    onPause={handlePause}
+                />
               ))}
             </div>
           )

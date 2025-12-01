@@ -1,11 +1,12 @@
 
 import React from 'react';
 import { Track } from '../types';
-import { Play, Pause, Plus, Check, Trash2, BarChart2 } from 'lucide-react';
+import { Play, Plus, Check, Trash2, List } from 'lucide-react';
 
 interface TrackRowProps {
   track: Track;
   onClick: (id: string) => void;
+  onInspect: (id: string) => void;
   isInMixingQueue: boolean;
   onToggleQueue: (id: string, e: React.MouseEvent) => void;
   onDelete: (id: string) => void;
@@ -19,6 +20,7 @@ interface TrackRowProps {
 const TrackRow: React.FC<TrackRowProps> = ({ 
   track, 
   onClick, 
+  onInspect,
   isInMixingQueue, 
   onToggleQueue, 
   onDelete,
@@ -41,6 +43,11 @@ const TrackRow: React.FC<TrackRowProps> = ({
       onPlay(track.id);
     }
   };
+
+  const handleInspect = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onInspect(track.id);
+  }
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -106,13 +113,22 @@ const TrackRow: React.FC<TrackRowProps> = ({
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-2 shrink-0 ml-auto md:ml-0">
+      <div className="flex items-center gap-1 shrink-0 ml-auto">
+        
+        <button
+          onClick={handleInspect}
+          className="p-1.5 rounded-md border border-slate-800 text-slate-500 hover:text-white hover:border-slate-500 hover:bg-slate-800 transition-all opacity-0 group-hover:opacity-100"
+          title="Details"
+        >
+          <List size={14} />
+        </button>
+
         <button
           onClick={(e) => onToggleQueue(track.id, e)}
           className={`p-1.5 rounded-md border transition-all ${
             isInMixingQueue 
-              ? 'bg-amber-500/10 border-amber-500/50 text-amber-500' 
-              : 'border-slate-800 text-slate-600 hover:text-slate-300 hover:border-slate-600'
+              ? 'bg-amber-500/10 border-amber-500/50 text-amber-500 opacity-100' 
+              : 'border-slate-800 text-slate-600 hover:text-slate-300 hover:border-slate-600 opacity-0 group-hover:opacity-100'
           }`}
           title="Mix"
         >
