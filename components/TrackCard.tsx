@@ -1,15 +1,17 @@
+
 import React, { useRef, useState, useEffect } from 'react';
 import { Track } from '../types';
-import { Play, Pause, Plus, Check } from 'lucide-react';
+import { Play, Pause, Plus, Check, Trash2 } from 'lucide-react';
 
 interface TrackCardProps {
   track: Track;
   onClick: (id: string) => void;
   isInMixingQueue: boolean;
   onToggleQueue: (id: string, e: React.MouseEvent) => void;
+  onDelete: (id: string) => void;
 }
 
-const TrackCard: React.FC<TrackCardProps> = ({ track, onClick, isInMixingQueue, onToggleQueue }) => {
+const TrackCard: React.FC<TrackCardProps> = ({ track, onClick, isInMixingQueue, onToggleQueue, onDelete }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
@@ -36,6 +38,11 @@ const TrackCard: React.FC<TrackCardProps> = ({ track, onClick, isInMixingQueue, 
 
   const handleAudioEnded = () => {
     setIsPlaying(false);
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDelete(track.id);
   };
 
   return (
@@ -85,6 +92,15 @@ const TrackCard: React.FC<TrackCardProps> = ({ track, onClick, isInMixingQueue, 
           title={isInMixingQueue ? "Remove from Mixing" : "Add to Mixing"}
         >
           {isInMixingQueue ? <Check size={12} strokeWidth={3} /> : <Plus size={12} />}
+        </button>
+
+        {/* Delete Button (Top Left) */}
+        <button
+          onClick={handleDelete}
+          className="absolute top-2 left-2 p-1.5 rounded bg-slate-900/90 backdrop-blur-sm border border-transparent hover:border-red-900/50 text-slate-500 hover:text-red-500 transition-all z-10 opacity-0 group-hover:opacity-100 hover:bg-red-950/20"
+          title="Delete Track"
+        >
+          <Trash2 size={12} />
         </button>
       </div>
 

@@ -1,6 +1,7 @@
+
 import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { Track } from '../types';
-import { ArrowLeft, Clock, Music, Tag as TagIcon, PlayCircle, PauseCircle, Pencil, Save, X } from 'lucide-react';
+import { ArrowLeft, Clock, Music, Tag as TagIcon, PlayCircle, PauseCircle, Pencil, Save, X, Trash2 } from 'lucide-react';
 import TrackCard from '../components/TrackCard';
 
 interface TrackDetailViewProps {
@@ -11,6 +12,7 @@ interface TrackDetailViewProps {
   onSelectTrack: (id: string) => void;
   onToggleQueue: (id: string, e: React.MouseEvent) => void;
   onUpdatePrompt: (id: string, newPrompt: string) => void;
+  onDeleteTrack: (id: string) => void;
 }
 
 const TrackDetailView: React.FC<TrackDetailViewProps> = ({ 
@@ -20,7 +22,8 @@ const TrackDetailView: React.FC<TrackDetailViewProps> = ({
   onBack, 
   onSelectTrack,
   onToggleQueue,
-  onUpdatePrompt
+  onUpdatePrompt,
+  onDeleteTrack
 }) => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -68,12 +71,21 @@ const TrackDetailView: React.FC<TrackDetailViewProps> = ({
 
   return (
     <div className="animate-in slide-in-from-bottom-4 duration-500 pb-20">
-      <button 
-        onClick={onBack}
-        className="flex items-center text-slate-500 hover:text-amber-500 mb-6 transition-colors uppercase text-xs tracking-widest font-bold"
-      >
-        <ArrowLeft className="w-4 h-4 mr-2" /> Return to Library
-      </button>
+      <div className="flex justify-between items-center mb-6">
+        <button 
+            onClick={onBack}
+            className="flex items-center text-slate-500 hover:text-amber-500 transition-colors uppercase text-xs tracking-widest font-bold"
+        >
+            <ArrowLeft className="w-4 h-4 mr-2" /> Return to Library
+        </button>
+
+        <button 
+            onClick={() => onDeleteTrack(track.id)}
+            className="flex items-center text-slate-600 hover:text-red-500 transition-colors text-xs uppercase tracking-widest font-bold border border-transparent hover:border-red-900/30 hover:bg-red-950/10 px-3 py-1.5 rounded"
+        >
+            <Trash2 className="w-4 h-4 mr-2" /> Delete Record
+        </button>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-16">
         {/* Left: Cover */}
@@ -204,6 +216,7 @@ const TrackDetailView: React.FC<TrackDetailViewProps> = ({
                   onClick={onSelectTrack}
                   isInMixingQueue={mixingQueue.includes(t.id)}
                   onToggleQueue={onToggleQueue}
+                  onDelete={onDeleteTrack}
                 />
               </div>
             ))}

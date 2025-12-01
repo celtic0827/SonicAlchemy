@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { ViewState, Track } from './types';
 import { INITIAL_TRACKS } from './constants';
 import { LayoutGrid, Disc, Plus, Settings } from 'lucide-react';
-import { getAllTracks, addTrackToDB, updateTrackInDB } from './services/db';
+import { getAllTracks, addTrackToDB, updateTrackInDB, deleteTrackFromDB } from './services/db';
 import { generateTrackCover } from './services/imageUtils';
 
 import LibraryView from './views/LibraryView';
@@ -91,6 +91,26 @@ const App = () => {
     }
   };
 
+  const handleDeleteTrack = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this track permanently?")) return;
+
+    try {
+      await deleteTrackFromDB(id);
+      
+      // Update local state
+      setTracks(prev => prev.filter(t => t.id !== id));
+      setMixingQueue(prev => prev.filter(tid => tid !== id));
+      
+      // If we are currently viewing this track, go back to library
+      if (view === 'track-detail' && currentTrackId === id) {
+        setView('library');
+        setCurrentTrackId(null);
+      }
+    } catch (e) {
+      console.error("Failed to delete track", e);
+    }
+  };
+
   const toggleTag = (tag: string) => {
     setSelectedTags(prev => 
       prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
@@ -131,6 +151,7 @@ const App = () => {
             onToggleTag={toggleTag}
             onSelectTrack={viewTrack}
             onToggleQueue={toggleQueue}
+            onDeleteTrack={handleDeleteTrack}
           />
         );
       case 'track-detail':
@@ -148,6 +169,7 @@ const App = () => {
             onSelectTrack={viewTrack}
             onToggleQueue={toggleQueue}
             onUpdatePrompt={handleUpdatePrompt}
+            onDeleteTrack={handleDeleteTrack}
           />
         );
       case 'mixing-room':

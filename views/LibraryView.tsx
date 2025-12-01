@@ -13,6 +13,7 @@ interface LibraryViewProps {
   onToggleTag: (tag: string) => void;
   onSelectTrack: (id: string) => void;
   onToggleQueue: (id: string, e: React.MouseEvent) => void;
+  onDeleteTrack: (id: string) => void;
 }
 
 const LibraryView: React.FC<LibraryViewProps> = ({ 
@@ -21,7 +22,8 @@ const LibraryView: React.FC<LibraryViewProps> = ({
   mixingQueue,
   onToggleTag, 
   onSelectTrack, 
-  onToggleQueue 
+  onToggleQueue,
+  onDeleteTrack
 }) => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
@@ -90,6 +92,7 @@ const LibraryView: React.FC<LibraryViewProps> = ({
                   onClick={onSelectTrack}
                   isInMixingQueue={mixingQueue.includes(track.id)}
                   onToggleQueue={onToggleQueue}
+                  onDelete={onDeleteTrack}
                 />
               ))}
             </div>
@@ -102,6 +105,7 @@ const LibraryView: React.FC<LibraryViewProps> = ({
                   onClick={onSelectTrack}
                   isInMixingQueue={mixingQueue.includes(track.id)}
                   onToggleQueue={onToggleQueue}
+                  onDelete={onDeleteTrack}
                 />
               ))}
             </div>

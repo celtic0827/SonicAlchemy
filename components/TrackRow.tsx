@@ -1,15 +1,17 @@
+
 import React, { useRef, useState, useEffect } from 'react';
 import { Track } from '../types';
-import { Play, Pause, Plus, Check, MoreVertical } from 'lucide-react';
+import { Play, Pause, Plus, Check, Trash2 } from 'lucide-react';
 
 interface TrackRowProps {
   track: Track;
   onClick: (id: string) => void;
   isInMixingQueue: boolean;
   onToggleQueue: (id: string, e: React.MouseEvent) => void;
+  onDelete: (id: string) => void;
 }
 
-const TrackRow: React.FC<TrackRowProps> = ({ track, onClick, isInMixingQueue, onToggleQueue }) => {
+const TrackRow: React.FC<TrackRowProps> = ({ track, onClick, isInMixingQueue, onToggleQueue, onDelete }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
@@ -33,6 +35,11 @@ const TrackRow: React.FC<TrackRowProps> = ({ track, onClick, isInMixingQueue, on
       setIsPlaying(true);
     }
   };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDelete(track.id);
+  }
 
   return (
     <div 
@@ -101,6 +108,14 @@ const TrackRow: React.FC<TrackRowProps> = ({ track, onClick, isInMixingQueue, on
           title="Mix"
         >
           {isInMixingQueue ? <Check size={14} /> : <Plus size={14} />}
+        </button>
+
+        <button
+          onClick={handleDelete}
+          className="p-1.5 rounded-md border border-slate-800 text-slate-600 hover:text-red-500 hover:border-red-900/50 hover:bg-red-950/20 transition-all"
+          title="Delete"
+        >
+          <Trash2 size={14} />
         </button>
       </div>
     </div>
