@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { ViewState, Track } from './types';
 import { INITIAL_TRACKS } from './constants';
@@ -249,10 +248,9 @@ const App = () => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 ml-16 lg:ml-64 bg-slate-950 min-h-screen relative">
+      <main className="flex-1 ml-16 lg:ml-64 bg-slate-950 min-h-screen relative overflow-x-hidden w-full">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-slate-950 pointer-events-none" />
-        {/* Changed max-w-7xl to container max-w-full and updated padding for fluidity */}
-        <div className="relative z-10 p-4 lg:p-8 container mx-auto max-w-full h-full">
+        <div className="relative z-10 p-4 lg:p-8 w-full">
           {renderContent()}
         </div>
       </main>

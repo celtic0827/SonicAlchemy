@@ -1,8 +1,8 @@
-
 import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { Track } from '../types';
 import { ArrowLeft, Clock, Music, Tag as TagIcon, PlayCircle, PauseCircle, Pencil, Save, X, Trash2 } from 'lucide-react';
 import TrackCard from '../components/TrackCard';
+import AudioVisualizer from '../components/AudioVisualizer';
 
 interface TrackDetailViewProps {
   track: Track;
@@ -70,7 +70,7 @@ const TrackDetailView: React.FC<TrackDetailViewProps> = ({
   }, [track, allTracks]);
 
   return (
-    <div className="animate-in slide-in-from-bottom-4 duration-500 pb-20">
+    <div className="animate-in slide-in-from-bottom-4 duration-500 pb-20 w-full">
       <div className="flex justify-between items-center mb-6">
         <button 
             onClick={onBack}
@@ -88,7 +88,7 @@ const TrackDetailView: React.FC<TrackDetailViewProps> = ({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-16">
-        {/* Left: Cover */}
+        {/* Left: Cover & Audio */}
         <div className="md:col-span-4 lg:col-span-3">
           <div className="aspect-square rounded shadow-2xl relative group bg-slate-900 border border-slate-800 overflow-hidden">
             <img 
@@ -111,27 +111,34 @@ const TrackDetailView: React.FC<TrackDetailViewProps> = ({
             </div>
           </div>
           
-          {track.audioUrl ? (
-            <div className="mt-4 bg-slate-900/50 p-2 rounded border border-slate-800">
-              <audio 
-                ref={audioRef} 
-                src={track.audioUrl} 
-                controls 
-                className="w-full h-8 accent-amber-500"
-                onPlay={() => setIsPlaying(true)}
-                onPause={() => setIsPlaying(false)}
-              />
-            </div>
-          ) : (
-             <div className="mt-4 text-center text-slate-600 text-xs italic border border-dashed border-slate-800 p-2 rounded">
-               No audio source
-             </div>
-          )}
+          <div className="mt-4 bg-slate-900/50 p-3 rounded border border-slate-800">
+             {track.audioUrl ? (
+                <>
+                  <audio 
+                    ref={audioRef} 
+                    src={track.audioUrl} 
+                    controls 
+                    className="w-full h-8 accent-amber-500 mb-2"
+                    onPlay={() => setIsPlaying(true)}
+                    onPause={() => setIsPlaying(false)}
+                    onEnded={() => setIsPlaying(false)}
+                  />
+                  {/* Visualizer */}
+                  <div className="pt-2 border-t border-slate-800/50">
+                    <AudioVisualizer audioRef={audioRef} isPlaying={isPlaying} />
+                  </div>
+                </>
+             ) : (
+                <div className="text-center text-slate-600 text-xs italic p-2">
+                  No audio source
+                </div>
+             )}
+          </div>
         </div>
 
         {/* Right: Info */}
         <div className="md:col-span-8 lg:col-span-9 flex flex-col justify-center">
-          <h1 className="text-4xl lg:text-6xl font-thin text-white mb-2 tracking-tight">{track.title}</h1>
+          <h1 className="text-4xl lg:text-6xl font-thin text-white mb-2 tracking-tight break-words">{track.title}</h1>
           <div className="flex items-center text-slate-500 text-xs uppercase tracking-widest mb-8">
             <Clock className="w-3 h-3 mr-2" />
             Added {new Date(track.createdAt).toLocaleDateString()}

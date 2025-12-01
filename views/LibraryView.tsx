@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Track } from '../types';
 import TrackCard from '../components/TrackCard';
@@ -43,10 +42,10 @@ const LibraryView: React.FC<LibraryViewProps> = ({
   });
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 pb-20">
+    <div className="space-y-6 animate-in fade-in duration-500 pb-20 w-full">
       
-      {/* Top Section: Tag Cloud */}
-      <section className="bg-slate-900/50 border-y border-slate-800/50 -mx-4 px-4 py-6 sticky top-0 z-20 backdrop-blur-md shadow-xl">
+      {/* Top Section: Tag Cloud - Adjusted negative margins to match parent padding */}
+      <section className="bg-slate-900/50 border-y border-slate-800/50 -mx-4 px-4 lg:-mx-8 lg:px-8 py-6 sticky top-0 z-20 backdrop-blur-md shadow-xl">
         <TagCloud 
           tracks={tracks} 
           selectedTags={selectedTags} 
@@ -80,7 +79,7 @@ const LibraryView: React.FC<LibraryViewProps> = ({
       </section>
 
       {/* Content */}
-      <section>
+      <section className="w-full">
         {filteredTracks.length === 0 ? (
           <div className="text-center py-20 border border-dashed border-slate-800 rounded-2xl bg-slate-900/30">
             <p className="text-slate-500 font-light">The void returns nothing.</p>
@@ -107,7 +106,7 @@ const LibraryView: React.FC<LibraryViewProps> = ({
               ))}
             </div>
           ) : (
-            <div className="space-y-1">
+            <div className="space-y-1 w-full">
               {filteredTracks.map(track => (
                 <TrackRow
                   key={track.id}
