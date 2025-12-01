@@ -5,7 +5,7 @@ import TrackCard from '../components/TrackCard';
 import TrackRow from '../components/TrackRow';
 import TagCloud from '../components/TagCloud';
 import WaveformPlayer from '../components/WaveformPlayer';
-import { LayoutGrid, List, Activity, FilterX } from 'lucide-react';
+import { LayoutGrid, List, Activity, FilterX, ChevronDown } from 'lucide-react';
 
 interface LibraryViewProps {
   tracks: Track[];
@@ -58,8 +58,9 @@ const LibraryView: React.FC<LibraryViewProps> = ({
   const audioRef = useRef<HTMLAudioElement>(null);
 
   // --- Filtering ---
-  const [bpmMin, setBpmMin] = useState<string>('');
-  const [bpmMax, setBpmMax] = useState<string>('');
+  const [bpmMin, setBpmMin] = useState<number | null>(null);
+  const [bpmMax, setBpmMax] = useState<number | null>(null);
+  const [activeBpmSelector, setActiveBpmSelector] = useState<'min' | 'max' | null>(null);
 
   const filteredTracks = tracks.filter(track => {
     // Tag Filter
@@ -70,11 +71,11 @@ const LibraryView: React.FC<LibraryViewProps> = ({
 
     // BPM Filter
     if (track.bpm) {
-        const min = bpmMin ? parseInt(bpmMin) : 0;
-        const max = bpmMax ? parseInt(bpmMax) : 9999;
+        const min = bpmMin !== null ? bpmMin : 0;
+        const max = bpmMax !== null ? bpmMax : 9999;
         if (track.bpm < min || track.bpm > max) return false;
-    } else if (bpmMin || bpmMax) {
-        // If track has no BPM but filters are active, exclude it (or include? usually exclude)
+    } else if (bpmMin !== null || bpmMax !== null) {
+        // If track has no BPM but filters are active, usually exclude
         return false;
     }
 
@@ -83,12 +84,27 @@ const LibraryView: React.FC<LibraryViewProps> = ({
 
   const clearFilters = () => {
     selectedTags.forEach(t => onToggleTag(t)); // Toggle all off
-    setBpmMin('');
-    setBpmMax('');
+    setBpmMin(null);
+    setBpmMax(null);
   }
 
   const selectedTrack = tracks.find(t => t.id === selectedTrackId);
   const playingTrack = tracks.find(t => t.id === playingTrackId);
+
+  // --- BPM Selector Helpers ---
+  const BPM_OPTIONS = Array.from({ length: 15 }, (_, i) => 60 + i * 10); // 60, 70 ... 200
+
+  const getValidBpmOptions = (type: 'min' | 'max') => {
+      if (type === 'min') {
+          // If Max is set, Min must be strictly LESS than Max
+          if (bpmMax === null) return BPM_OPTIONS;
+          return BPM_OPTIONS.filter(v => v < bpmMax);
+      } else {
+          // If Min is set, Max must be strictly GREATER than Min
+          if (bpmMin === null) return BPM_OPTIONS;
+          return BPM_OPTIONS.filter(v => v > bpmMin);
+      }
+  };
 
   // --- Audio Effects ---
 
@@ -223,30 +239,99 @@ const LibraryView: React.FC<LibraryViewProps> = ({
         />
         
         {/* BPM Filter Bar */}
-        <div className="flex items-center gap-4 text-xs">
-           <div className="flex items-center gap-2 text-slate-500 bg-slate-950 p-1.5 rounded border border-slate-800">
+        <div className="flex flex-wrap items-center gap-4 text-xs relative">
+           <div className="flex items-center gap-2 text-slate-500 bg-slate-950 p-1.5 rounded border border-slate-800 shrink-0">
              <Activity size={14} className="text-amber-600" />
-             <span className="font-bold uppercase tracking-wider text-[10px]">BPM Range</span>
-           </div>
-           <div className="flex items-center gap-2">
-             <input 
-                type="number" 
-                placeholder="Min" 
-                className="w-16 bg-slate-900 border border-slate-800 rounded px-2 py-1 text-slate-200 focus:border-amber-500/50 focus:outline-none font-mono placeholder-slate-600"
-                value={bpmMin}
-                onChange={(e) => setBpmMin(e.target.value)}
-             />
-             <span className="text-slate-600">-</span>
-             <input 
-                type="number" 
-                placeholder="Max" 
-                className="w-16 bg-slate-900 border border-slate-800 rounded px-2 py-1 text-slate-200 focus:border-amber-500/50 focus:outline-none font-mono placeholder-slate-600"
-                value={bpmMax}
-                onChange={(e) => setBpmMax(e.target.value)}
-             />
+             <span className="font-bold uppercase tracking-wider text-[10px]">Tempo</span>
            </div>
            
-           {(bpmMin || bpmMax || selectedTags.length > 0) && (
+           <div className="flex items-center gap-2">
+             {/* Min Selector */}
+             <div className="relative">
+                <button 
+                  onClick={() => setActiveBpmSelector(activeBpmSelector === 'min' ? null : 'min')}
+                  className={`w-24 flex items-center justify-between bg-slate-900 border rounded px-3 py-2 text-slate-200 focus:outline-none font-mono text-xs transition-colors ${activeBpmSelector === 'min' ? 'border-amber-500 text-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.2)]' : 'border-slate-800 hover:border-slate-600'}`}
+                >
+                    <span className="truncate">Min: {bpmMin ?? 'Any'}</span>
+                    <ChevronDown size={12} className={`shrink-0 ml-1 transition-transform ${activeBpmSelector === 'min' ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {/* Min Popover */}
+                {activeBpmSelector === 'min' && (
+                    <>
+                    <div className="fixed inset-0 z-30" onClick={() => setActiveBpmSelector(null)}></div>
+                    <div className="absolute top-full mt-2 left-0 w-72 bg-slate-950 border border-amber-900/50 rounded-lg shadow-2xl z-40 p-3 grid grid-cols-4 gap-2 animate-in fade-in zoom-in-95 duration-200">
+                        <button 
+                            onClick={() => { setBpmMin(null); setActiveBpmSelector(null); }}
+                            className={`col-span-4 p-2 text-center text-[10px] uppercase font-bold tracking-widest rounded border border-slate-800 hover:bg-slate-900 transition-colors ${bpmMin === null ? 'bg-amber-950/30 text-amber-500 border-amber-500/30' : 'text-slate-500'}`}
+                        >
+                            Any (No Limit)
+                        </button>
+                        {getValidBpmOptions('min').length > 0 ? (
+                            getValidBpmOptions('min').map(val => (
+                                <button
+                                    key={val}
+                                    onClick={() => { setBpmMin(val); setActiveBpmSelector(null); }}
+                                    className={`p-3 text-center font-mono text-xs rounded border border-slate-800 hover:bg-slate-900 transition-colors ${bpmMin === val ? 'bg-amber-500 text-slate-950 font-bold border-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.3)]' : 'text-slate-400 hover:text-amber-500 hover:border-amber-500/30'}`}
+                                >
+                                    {val}
+                                </button>
+                            ))
+                        ) : (
+                            <div className="col-span-4 text-center text-slate-600 py-2 text-xs italic">
+                                No lower options available
+                            </div>
+                        )}
+                    </div>
+                    </>
+                )}
+             </div>
+
+             <span className="text-slate-600">-</span>
+
+             {/* Max Selector */}
+             <div className="relative">
+                <button 
+                  onClick={() => setActiveBpmSelector(activeBpmSelector === 'max' ? null : 'max')}
+                  className={`w-24 flex items-center justify-between bg-slate-900 border rounded px-3 py-2 text-slate-200 focus:outline-none font-mono text-xs transition-colors ${activeBpmSelector === 'max' ? 'border-amber-500 text-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.2)]' : 'border-slate-800 hover:border-slate-600'}`}
+                >
+                    <span className="truncate">Max: {bpmMax ?? 'Any'}</span>
+                    <ChevronDown size={12} className={`shrink-0 ml-1 transition-transform ${activeBpmSelector === 'max' ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* Max Popover */}
+                {activeBpmSelector === 'max' && (
+                    <>
+                    <div className="fixed inset-0 z-30" onClick={() => setActiveBpmSelector(null)}></div>
+                    <div className="absolute top-full mt-2 left-0 w-72 bg-slate-950 border border-amber-900/50 rounded-lg shadow-2xl z-40 p-3 grid grid-cols-4 gap-2 animate-in fade-in zoom-in-95 duration-200">
+                        <button 
+                            onClick={() => { setBpmMax(null); setActiveBpmSelector(null); }}
+                            className={`col-span-4 p-2 text-center text-[10px] uppercase font-bold tracking-widest rounded border border-slate-800 hover:bg-slate-900 transition-colors ${bpmMax === null ? 'bg-amber-950/30 text-amber-500 border-amber-500/30' : 'text-slate-500'}`}
+                        >
+                            Any (No Limit)
+                        </button>
+                        {getValidBpmOptions('max').length > 0 ? (
+                            getValidBpmOptions('max').map(val => (
+                                <button
+                                    key={val}
+                                    onClick={() => { setBpmMax(val); setActiveBpmSelector(null); }}
+                                    className={`p-3 text-center font-mono text-xs rounded border border-slate-800 hover:bg-slate-900 transition-colors ${bpmMax === val ? 'bg-amber-500 text-slate-950 font-bold border-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.3)]' : 'text-slate-400 hover:text-amber-500 hover:border-amber-500/30'}`}
+                                >
+                                    {val}
+                                </button>
+                            ))
+                         ) : (
+                            <div className="col-span-4 text-center text-slate-600 py-2 text-xs italic">
+                                No higher options available
+                            </div>
+                        )}
+                    </div>
+                    </>
+                )}
+             </div>
+           </div>
+           
+           {(bpmMin !== null || bpmMax !== null || selectedTags.length > 0) && (
                <button onClick={clearFilters} className="ml-auto text-slate-500 hover:text-red-400 flex items-center gap-1 transition-colors" title="Clear All Filters">
                   <FilterX size={14} /> <span className="hidden sm:inline">Clear</span>
                </button>
