@@ -1,7 +1,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { Track } from '../types';
-import { Play, Pause, SkipForward, SkipBack, Loader2, Volume2 } from 'lucide-react';
+import { Play, Pause, SkipForward, SkipBack, Loader2, Volume2, Volume1, VolumeX } from 'lucide-react';
 
 interface WaveformPlayerProps {
   selectedTrack: Track;
@@ -9,9 +9,13 @@ interface WaveformPlayerProps {
   isPlaying: boolean;
   currentTime: number;
   duration: number;
+  volume: number;
   onPlay: (id: string) => void;
   onPause: () => void;
   onSeek: (time: number) => void;
+  onNext: () => void;
+  onPrevious: () => void;
+  onVolumeChange: (val: number) => void;
 }
 
 const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
@@ -20,14 +24,17 @@ const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
   isPlaying,
   currentTime,
   duration,
+  volume,
   onPlay,
   onPause,
-  onSeek
+  onSeek,
+  onNext,
+  onPrevious,
+  onVolumeChange
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [audioBuffer, setAudioBuffer] = useState<AudioBuffer | null>(null);
   const [isDecoding, setIsDecoding] = useState(false);
-  const [hoverX, setHoverX] = useState<number | null>(null);
 
   const isCurrentTrackPlaying = playingTrackId === selectedTrack.id;
 
@@ -151,21 +158,22 @@ const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
     if (isCurrentTrackPlaying) {
         onSeek(newTime);
     } else {
-        // If clicking a waveform that isn't playing, start playing from there?
-        // Or just start playing from beginning. Let's start from beginning for simplicity logic first,
-        // or support seek if we switch context immediately.
         onPlay(selectedTrack.id);
-        // We can't seek immediately because the parent <audio> hasn't loaded the source yet.
-        // So we just play.
     }
   };
+
+  const VolumeIcon = volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
 
   return (
     <div className="fixed bottom-0 left-0 lg:left-64 right-0 h-24 bg-slate-950/95 border-t border-amber-500/30 backdrop-blur-xl flex items-center px-6 z-40 shadow-[0_-5px_30px_rgba(0,0,0,0.8)] animate-in slide-in-from-bottom-full duration-500">
       
       {/* Controls */}
       <div className="flex items-center gap-4 mr-6 shrink-0">
-        <button className="text-slate-500 hover:text-slate-300">
+        <button 
+          onClick={onPrevious}
+          className="text-slate-500 hover:text-amber-500 transition-colors"
+          title="Previous Track"
+        >
             <SkipBack size={20} />
         </button>
         
@@ -180,7 +188,11 @@ const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
             )}
         </button>
 
-        <button className="text-slate-500 hover:text-slate-300">
+        <button 
+          onClick={onNext}
+          className="text-slate-500 hover:text-amber-500 transition-colors"
+          title="Next Track"
+        >
             <SkipForward size={20} />
         </button>
       </div>
@@ -216,9 +228,25 @@ const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
         )}
       </div>
       
-      {/* Volume / Extra */}
-      <div className="ml-6 shrink-0 text-slate-500 hidden lg:block">
-         <Volume2 size={20} />
+      {/* Volume Control */}
+      <div className="ml-6 shrink-0 text-slate-500 group relative flex items-center h-full">
+         <div className="w-0 overflow-hidden group-hover:w-24 transition-all duration-300 ease-out flex items-center pr-2">
+            <input 
+              type="range" 
+              min="0" 
+              max="1" 
+              step="0.01" 
+              value={volume}
+              onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
+              className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500" 
+            />
+         </div>
+         <button 
+           onClick={() => onVolumeChange(volume === 0 ? 1 : 0)}
+           className="hover:text-amber-500 transition-colors p-2"
+         >
+            <VolumeIcon size={20} />
+         </button>
       </div>
 
     </div>

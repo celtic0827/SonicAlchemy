@@ -48,6 +48,9 @@ const LibraryView: React.FC<LibraryViewProps> = ({
   // Is audio running?
   const [isPlaying, setIsPlaying] = useState(false);
   
+  // Volume (0.0 to 1.0)
+  const [volume, setVolume] = useState(1);
+  
   // Playback Progress
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -65,26 +68,40 @@ const LibraryView: React.FC<LibraryViewProps> = ({
 
   // --- Audio Effects ---
 
-  // Handle Play/Pause Logic
+  // Handle Volume Changes
   useEffect(() => {
-    if (!audioRef.current) return;
-    
-    if (isPlaying) {
-        audioRef.current.play().catch(e => {
-            console.error("Playback error", e);
-            setIsPlaying(false);
-        });
-    } else {
-        audioRef.current.pause();
+    if (audioRef.current) {
+        audioRef.current.volume = volume;
     }
-  }, [isPlaying, playingTrackId]); // Depend on ID change to trigger re-play if source updates
+  }, [volume]);
+
+  // Handle Play/Pause Logic safely
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    
+    // Using a simple check to prevent race conditions
+    if (isPlaying) {
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(error => {
+                // Ignore the abort error (happens if pause is called quickly after play)
+                if (error.name !== 'AbortError') {
+                    console.error("Playback error", error);
+                    setIsPlaying(false);
+                }
+            });
+        }
+    } else {
+        audio.pause();
+    }
+  }, [isPlaying, playingTrackId]); 
 
   // Handle Track Source Change
   useEffect(() => {
     if (audioRef.current) {
         if (playingTrackId && playingTrack?.audioUrl) {
-            // Only update src if it's different to prevent reload
-            // But we rely on React to update the src prop in render
+            // Audio source updates automatically via prop
         } else {
             // No track playing
             audioRef.current.pause();
@@ -132,6 +149,35 @@ const LibraryView: React.FC<LibraryViewProps> = ({
     }
   };
 
+  const getNextTrackId = (currentId: string, direction: 'next' | 'prev') => {
+    const currentIndex = filteredTracks.findIndex(t => t.id === currentId);
+    if (currentIndex === -1) return filteredTracks[0]?.id; // Fallback
+
+    let nextIndex;
+    if (direction === 'next') {
+        nextIndex = (currentIndex + 1) % filteredTracks.length;
+    } else {
+        nextIndex = (currentIndex - 1 + filteredTracks.length) % filteredTracks.length;
+    }
+    return filteredTracks[nextIndex].id;
+  };
+
+  const handleNext = () => {
+    const currentId = playingTrackId || selectedTrackId;
+    if (!currentId || filteredTracks.length === 0) return;
+    
+    const nextId = getNextTrackId(currentId, 'next');
+    if (nextId) handlePlay(nextId);
+  };
+
+  const handlePrevious = () => {
+    const currentId = playingTrackId || selectedTrackId;
+    if (!currentId || filteredTracks.length === 0) return;
+    
+    const prevId = getNextTrackId(currentId, 'prev');
+    if (prevId) handlePlay(prevId);
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-32 w-full relative">
       
@@ -141,7 +187,7 @@ const LibraryView: React.FC<LibraryViewProps> = ({
         src={playingTrack?.audioUrl}
         onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
         onDurationChange={(e) => setDuration(e.currentTarget.duration)}
-        onEnded={() => setIsPlaying(false)}
+        onEnded={handleNext} // Auto-play next
       />
 
       {/* Top Section: Tag Cloud */}
@@ -249,9 +295,13 @@ const LibraryView: React.FC<LibraryViewProps> = ({
             isPlaying={isPlaying}
             currentTime={currentTime}
             duration={duration}
+            volume={volume}
             onPlay={handlePlay}
             onPause={handlePause}
             onSeek={handleSeek}
+            onNext={handleNext}
+            onPrevious={handlePrevious}
+            onVolumeChange={setVolume}
         />
       )}
     </div>
