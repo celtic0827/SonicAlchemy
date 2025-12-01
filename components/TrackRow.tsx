@@ -70,8 +70,8 @@ const TrackRow: React.FC<TrackRowProps> = ({ track, onClick, isInMixingQueue, on
         </div>
       </div>
 
-      {/* Title - Dynamic Width & Truncation */}
-      <div className="flex-1 min-w-0 mr-4">
+      {/* Title - Fixed 1/4 Width */}
+      <div className="w-1/4 min-w-[150px] mr-4 shrink-0">
         <h4 
             className={`text-sm font-medium truncate ${isPlaying ? 'text-amber-400' : 'text-slate-200 group-hover:text-white'}`}
             title={track.title}
@@ -80,8 +80,8 @@ const TrackRow: React.FC<TrackRowProps> = ({ track, onClick, isInMixingQueue, on
         </h4>
       </div>
 
-      {/* Tags - Left Aligned */}
-      <div className="hidden md:flex gap-1 mr-4 max-w-[200px] lg:max-w-[300px] xl:max-w-[400px] overflow-hidden justify-start mask-linear-to-r">
+      {/* Tags - Take remaining space */}
+      <div className="hidden md:flex flex-1 min-w-0 gap-1 mr-4 overflow-hidden justify-start mask-linear-to-r">
         {track.tags.map(tag => (
           <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-400 whitespace-nowrap shrink-0">
             {tag}
@@ -90,7 +90,7 @@ const TrackRow: React.FC<TrackRowProps> = ({ track, onClick, isInMixingQueue, on
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex items-center gap-2 shrink-0 ml-auto md:ml-0">
         <button
           onClick={(e) => onToggleQueue(track.id, e)}
           className={`p-1.5 rounded-md border transition-all ${
