@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { ViewState, Track } from './types';
 import { INITIAL_TRACKS } from './constants';
-import { LayoutGrid, Disc, Plus, Settings } from 'lucide-react';
+import { LayoutGrid, Disc, Plus, Settings, FlaskConical } from 'lucide-react';
 import { getAllTracks, addTrackToDB, updateTrackInDB, deleteTrackFromDB } from './services/db';
 import { generateTrackCover } from './services/imageUtils';
 
@@ -216,7 +216,7 @@ const App = () => {
           >
             {view === 'mixing-room' ? <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500"></div> : null}
             <div className="relative z-10">
-              <Disc className="w-5 h-5 lg:mr-3" />
+              <FlaskConical className="w-5 h-5 lg:mr-3" />
               {mixingQueue.length > 0 && (
                 <span className="absolute -top-1 -right-1 lg:right-2 lg:-top-1 w-3 h-3 bg-amber-600 rounded-full text-[8px] flex items-center justify-center text-white border border-slate-950">
                   {mixingQueue.length}

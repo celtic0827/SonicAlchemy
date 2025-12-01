@@ -80,8 +80,8 @@ const TrackRow: React.FC<TrackRowProps> = ({ track, onClick, isInMixingQueue, on
         </h4>
       </div>
 
-      {/* Tags - Hidden on small, Restricted width on large */}
-      <div className="hidden md:flex gap-1 mr-4 max-w-[200px] lg:max-w-[300px] xl:max-w-[400px] overflow-hidden justify-end">
+      {/* Tags - Left Aligned */}
+      <div className="hidden md:flex gap-1 mr-4 max-w-[200px] lg:max-w-[300px] xl:max-w-[400px] overflow-hidden justify-start mask-linear-to-r">
         {track.tags.map(tag => (
           <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-400 whitespace-nowrap shrink-0">
             {tag}
