@@ -231,9 +231,9 @@ const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
         )}
       </div>
       
-      {/* Volume Control */}
-      <div className="ml-6 shrink-0 text-slate-500 group relative flex items-center h-full">
-         <div className="w-0 overflow-hidden group-hover:w-24 transition-all duration-300 ease-out flex items-center pr-2">
+      {/* Volume Control - Expanded Hit Area */}
+      <div className="ml-4 flex items-center h-full group pl-4 pr-6 relative">
+         <div className="w-0 overflow-hidden group-hover:w-32 transition-all duration-300 ease-out flex items-center mr-2">
             <input 
               type="range" 
               min="0" 
@@ -241,14 +241,14 @@ const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
               step="0.01" 
               value={volume}
               onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
-              className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500" 
+              className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50" 
             />
          </div>
          <button 
            onClick={() => onVolumeChange(volume === 0 ? 1 : 0)}
-           className="hover:text-amber-500 transition-colors p-2"
+           className="text-slate-500 hover:text-amber-500 transition-colors p-3 hover:bg-slate-900/50 rounded-full"
          >
-            <VolumeIcon size={20} />
+            <VolumeIcon size={24} />
          </button>
       </div>
 
