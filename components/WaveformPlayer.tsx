@@ -34,27 +34,28 @@ const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [audioBuffer, setAudioBuffer] = useState<AudioBuffer | null>(null);
+  const [peaks, setPeaks] = useState<number[] | null>(null);
   const [isDecoding, setIsDecoding] = useState(false);
 
   const isCurrentTrackPlaying = playingTrackId === selectedTrack.id;
 
-  // 1. Decode Audio Data for Waveform
+  // 1. Decode Audio Data & Calculate Peaks
   useEffect(() => {
     let active = true;
     
     const decodeAudio = async () => {
       if (!selectedTrack.audioUrl) {
         setAudioBuffer(null);
+        setPeaks(null);
         return;
       }
 
-      // Check if we already have this buffer cached in a real app, 
-      // but here we decode on change.
       setIsDecoding(true);
       setAudioBuffer(null);
+      setPeaks(null);
 
       try {
-        // Fetch the base64/blob
+        // Fetch
         const response = await fetch(selectedTrack.audioUrl);
         const arrayBuffer = await response.arrayBuffer();
         
@@ -64,6 +65,28 @@ const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
         
         if (active) {
           setAudioBuffer(decoded);
+
+          // --- Pre-calculate Peaks for Performance ---
+          // Instead of processing the whole buffer every frame, we condense it to fit the canvas width (800px)
+          const channelData = decoded.getChannelData(0);
+          const canvasWidth = 800;
+          const step = Math.ceil(channelData.length / canvasWidth);
+          const calculatedPeaks = [];
+
+          for (let i = 0; i < canvasWidth; i++) {
+            let max = 0;
+            const start = i * step;
+            // Scan the chunk for the max amplitude
+            // Optimization: Don't scan past end
+            const end = Math.min(start + step, channelData.length);
+            
+            for (let j = start; j < end; j++) {
+                const val = Math.abs(channelData[j]);
+                if (val > max) max = val;
+            }
+            calculatedPeaks.push(max);
+          }
+          setPeaks(calculatedPeaks);
         }
       } catch (e) {
         console.error("Error decoding audio for waveform", e);
@@ -77,10 +100,10 @@ const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
     return () => { active = false; };
   }, [selectedTrack.id, selectedTrack.audioUrl]);
 
-  // 2. Draw Waveform
+  // 2. Draw Waveform from Peaks
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !audioBuffer) return;
+    if (!canvas || !peaks) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -88,36 +111,18 @@ const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
     const width = canvas.width;
     const height = canvas.height;
     
-    // Clear
     ctx.clearRect(0, 0, width, height);
     
-    // Draw Logic
-    const data = audioBuffer.getChannelData(0);
-    const step = Math.ceil(data.length / width);
-    const amp = height / 2;
-
-    ctx.beginPath();
-    ctx.moveTo(0, amp);
-
-    // Styling
-    // If this track is playing, we draw progress.
-    // If not, we just draw the whole waveform in a neutral gold.
-    
-    for (let i = 0; i < width; i++) {
-      let min = 1.0;
-      let max = -1.0;
-      for (let j = 0; j < step; j++) {
-        const datum = data[(i * step) + j];
-        if (datum < min) min = datum;
-        if (datum > max) max = datum;
-      }
-      
-      // Draw a bar for this pixel column
+    // Using pre-calculated peaks allows extremely fast rendering
+    peaks.forEach((peak, i) => {
       const x = i;
-      const yMin = (1 + min) * amp;
-      const yMax = (1 + max) * amp;
       
-      // Progress Coloring
+      // Calculate bar height based on peak amplitude (0..1)
+      // Scale it to fit canvas height comfortably
+      const barHeight = Math.max(2, peak * height * 0.9); 
+      const y = (height - barHeight) / 2;
+
+      // Color logic
       const progressPercent = isCurrentTrackPlaying ? (currentTime / duration) : 0;
       const isPlayed = (i / width) < progressPercent;
 
@@ -127,10 +132,8 @@ const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
           ctx.fillStyle = '#78350f'; // Amber-900 (Inactive)
       }
       
-      // Draw Rect (Bar)
-      const barHeight = Math.max(1, yMax - yMin);
-      ctx.fillRect(x, height / 2 - barHeight / 2, 1, barHeight);
-    }
+      ctx.fillRect(x, y, 1, barHeight);
+    });
     
     // Draw Scrubber / Playhead
     if (isCurrentTrackPlaying) {
@@ -138,13 +141,13 @@ const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
         ctx.fillStyle = '#fff';
         ctx.fillRect(playheadX, 0, 2, height);
         
-        // Glow
+        // Glow effect
         ctx.shadowColor = '#fbbf24';
         ctx.shadowBlur = 10;
         ctx.shadowBlur = 0; // Reset
     }
 
-  }, [audioBuffer, currentTime, duration, isCurrentTrackPlaying]);
+  }, [peaks, currentTime, duration, isCurrentTrackPlaying]);
 
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!audioBuffer || !canvasRef.current) return;
