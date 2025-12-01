@@ -7,6 +7,7 @@ export interface Track {
   tags: string[];
   createdAt: number;
   audioUrl?: string;
+  bpm?: number;
 }
 
 export interface TagStat {

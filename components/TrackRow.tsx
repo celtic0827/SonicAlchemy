@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Track } from '../types';
-import { Play, Plus, Check, Trash2, List } from 'lucide-react';
+import { Play, Plus, Check, Trash2, List, Activity } from 'lucide-react';
 
 interface TrackRowProps {
   track: Track;
@@ -99,6 +99,18 @@ const TrackRow: React.FC<TrackRowProps> = ({
         >
           {track.title}
         </h4>
+      </div>
+      
+      {/* BPM - Fixed Width */}
+      <div className="w-20 shrink-0 mr-4 hidden sm:flex items-center text-slate-500 font-mono text-xs">
+         {track.bpm ? (
+            <span className={`flex items-center gap-1.5 ${isCurrent ? 'text-amber-500' : ''}`}>
+               <Activity size={10} />
+               {track.bpm}
+            </span>
+         ) : (
+            <span className="opacity-30">-</span>
+         )}
       </div>
 
       {/* Tags */}

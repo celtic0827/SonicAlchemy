@@ -1,6 +1,7 @@
+
 import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { Track } from '../types';
-import { ArrowLeft, Clock, Music, Tag as TagIcon, PlayCircle, PauseCircle, Pencil, Save, X, Trash2 } from 'lucide-react';
+import { ArrowLeft, Clock, Music, Tag as TagIcon, PlayCircle, PauseCircle, Pencil, Save, X, Trash2, Copy, Check, Activity } from 'lucide-react';
 import TrackCard from '../components/TrackCard';
 import AudioVisualizer from '../components/AudioVisualizer';
 
@@ -29,6 +30,7 @@ const TrackDetailView: React.FC<TrackDetailViewProps> = ({
   const [isPlaying, setIsPlaying] = useState(false);
   const [isEditingPrompt, setIsEditingPrompt] = useState(false);
   const [editedPrompt, setEditedPrompt] = useState(track.prompt);
+  const [isCopied, setIsCopied] = useState(false);
 
   useEffect(() => {
     setIsPlaying(false);
@@ -55,6 +57,12 @@ const TrackDetailView: React.FC<TrackDetailViewProps> = ({
       onUpdatePrompt(track.id, editedPrompt);
       setIsEditingPrompt(false);
     }
+  };
+
+  const handleCopyPrompt = () => {
+    navigator.clipboard.writeText(track.prompt);
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 2000);
   };
 
   const similarTracks = useMemo(() => {
@@ -134,6 +142,21 @@ const TrackDetailView: React.FC<TrackDetailViewProps> = ({
                 </div>
              )}
           </div>
+          
+          {/* Audio Stats */}
+          <div className="mt-4 grid grid-cols-2 gap-4">
+             <div className="bg-slate-900/50 p-3 rounded border border-slate-800 flex flex-col items-center">
+                <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">Tempo</span>
+                <span className="text-xl font-mono text-amber-500 flex items-center gap-1">
+                   <Activity size={14} className="text-amber-700" />
+                   {track.bpm ? track.bpm : '--'} <span className="text-[10px] text-slate-600">BPM</span>
+                </span>
+             </div>
+             <div className="bg-slate-900/50 p-3 rounded border border-slate-800 flex flex-col items-center">
+                <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">Format</span>
+                <span className="text-sm font-mono text-slate-400 mt-1">MP3 / WAV</span>
+             </div>
+          </div>
         </div>
 
         {/* Right: Info */}
@@ -150,14 +173,28 @@ const TrackDetailView: React.FC<TrackDetailViewProps> = ({
                 <Music className="w-3 h-3 mr-2" />
                 Prompt DNA
               </h3>
-              {!isEditingPrompt && (
+              
+              <div className="flex items-center gap-1 opacity-0 group-hover/prompt:opacity-100 transition-opacity">
+                {/* Copy Button */}
                 <button 
-                  onClick={() => setIsEditingPrompt(true)}
-                  className="p-1.5 text-slate-500 hover:text-amber-400 transition-all opacity-0 group-hover/prompt:opacity-100"
+                  onClick={handleCopyPrompt}
+                  className="p-1.5 text-slate-500 hover:text-amber-400 transition-all rounded hover:bg-slate-800"
+                  title="Copy Prompt"
                 >
-                  <Pencil className="w-4 h-4" />
+                  {isCopied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
                 </button>
-              )}
+
+                {/* Edit Button */}
+                {!isEditingPrompt && (
+                  <button 
+                    onClick={() => setIsEditingPrompt(true)}
+                    className="p-1.5 text-slate-500 hover:text-amber-400 transition-all rounded hover:bg-slate-800"
+                    title="Edit Prompt"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
             </div>
 
             {isEditingPrompt ? (
@@ -224,6 +261,11 @@ const TrackDetailView: React.FC<TrackDetailViewProps> = ({
                   isInMixingQueue={mixingQueue.includes(t.id)}
                   onToggleQueue={onToggleQueue}
                   onDelete={onDeleteTrack}
+                  selectedTrackId={null} // Simplified for similar tracks view
+                  playingTrackId={null}
+                  isPlaying={false}
+                  onPlay={() => {}} // No playback for similar cards
+                  onPause={() => {}}
                 />
               </div>
             ))}

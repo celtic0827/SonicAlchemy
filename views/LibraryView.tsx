@@ -5,7 +5,7 @@ import TrackCard from '../components/TrackCard';
 import TrackRow from '../components/TrackRow';
 import TagCloud from '../components/TagCloud';
 import WaveformPlayer from '../components/WaveformPlayer';
-import { LayoutGrid, List } from 'lucide-react';
+import { LayoutGrid, List, Activity, FilterX } from 'lucide-react';
 
 interface LibraryViewProps {
   tracks: Track[];
@@ -58,10 +58,34 @@ const LibraryView: React.FC<LibraryViewProps> = ({
   const audioRef = useRef<HTMLAudioElement>(null);
 
   // --- Filtering ---
+  const [bpmMin, setBpmMin] = useState<string>('');
+  const [bpmMax, setBpmMax] = useState<string>('');
+
   const filteredTracks = tracks.filter(track => {
-    if (selectedTags.length === 0) return true;
-    return selectedTags.every(tag => track.tags.includes(tag));
+    // Tag Filter
+    if (selectedTags.length > 0) {
+        const matchesTags = selectedTags.every(tag => track.tags.includes(tag));
+        if (!matchesTags) return false;
+    }
+
+    // BPM Filter
+    if (track.bpm) {
+        const min = bpmMin ? parseInt(bpmMin) : 0;
+        const max = bpmMax ? parseInt(bpmMax) : 9999;
+        if (track.bpm < min || track.bpm > max) return false;
+    } else if (bpmMin || bpmMax) {
+        // If track has no BPM but filters are active, exclude it (or include? usually exclude)
+        return false;
+    }
+
+    return true;
   });
+
+  const clearFilters = () => {
+    selectedTags.forEach(t => onToggleTag(t)); // Toggle all off
+    setBpmMin('');
+    setBpmMax('');
+  }
 
   const selectedTrack = tracks.find(t => t.id === selectedTrackId);
   const playingTrack = tracks.find(t => t.id === playingTrackId);
@@ -190,13 +214,44 @@ const LibraryView: React.FC<LibraryViewProps> = ({
         onEnded={handleNext} // Auto-play next
       />
 
-      {/* Top Section: Tag Cloud */}
-      <section className="bg-slate-900/50 border-y border-slate-800/50 -mx-4 px-4 lg:-mx-8 lg:px-8 py-6 sticky top-0 z-20 backdrop-blur-md shadow-xl">
+      {/* Top Section: Tag Cloud & Filters */}
+      <section className="bg-slate-900/50 border-y border-slate-800/50 -mx-4 px-4 lg:-mx-8 lg:px-8 py-6 sticky top-0 z-20 backdrop-blur-md shadow-xl flex flex-col gap-4">
         <TagCloud 
           tracks={tracks} 
           selectedTags={selectedTags} 
           onToggleTag={onToggleTag} 
         />
+        
+        {/* BPM Filter Bar */}
+        <div className="flex items-center gap-4 text-xs">
+           <div className="flex items-center gap-2 text-slate-500 bg-slate-950 p-1.5 rounded border border-slate-800">
+             <Activity size={14} className="text-amber-600" />
+             <span className="font-bold uppercase tracking-wider text-[10px]">BPM Range</span>
+           </div>
+           <div className="flex items-center gap-2">
+             <input 
+                type="number" 
+                placeholder="Min" 
+                className="w-16 bg-slate-900 border border-slate-800 rounded px-2 py-1 text-slate-200 focus:border-amber-500/50 focus:outline-none font-mono placeholder-slate-600"
+                value={bpmMin}
+                onChange={(e) => setBpmMin(e.target.value)}
+             />
+             <span className="text-slate-600">-</span>
+             <input 
+                type="number" 
+                placeholder="Max" 
+                className="w-16 bg-slate-900 border border-slate-800 rounded px-2 py-1 text-slate-200 focus:border-amber-500/50 focus:outline-none font-mono placeholder-slate-600"
+                value={bpmMax}
+                onChange={(e) => setBpmMax(e.target.value)}
+             />
+           </div>
+           
+           {(bpmMin || bpmMax || selectedTags.length > 0) && (
+               <button onClick={clearFilters} className="ml-auto text-slate-500 hover:text-red-400 flex items-center gap-1 transition-colors" title="Clear All Filters">
+                  <FilterX size={14} /> <span className="hidden sm:inline">Clear</span>
+               </button>
+           )}
+        </div>
       </section>
 
       {/* Header & Controls */}
@@ -230,7 +285,7 @@ const LibraryView: React.FC<LibraryViewProps> = ({
           <div className="text-center py-20 border border-dashed border-slate-800 rounded-2xl bg-slate-900/30">
             <p className="text-slate-500 font-light">The void returns nothing.</p>
             <button 
-              onClick={() => selectedTags.forEach(t => onToggleTag(t))}
+              onClick={clearFilters}
               className="mt-4 text-amber-600 hover:text-amber-500 text-sm border-b border-amber-600/30 hover:border-amber-500 pb-0.5 transition-colors"
             >
               Clear filters

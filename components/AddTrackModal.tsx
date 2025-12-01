@@ -1,7 +1,8 @@
 
 import React, { useState, useRef, useCallback } from 'react';
-import { X, Sparkles, Loader2, Upload, Music, Trash2, AlertCircle } from 'lucide-react';
+import { X, Sparkles, Loader2, Upload, Music, Trash2, AlertCircle, Activity } from 'lucide-react';
 import { extractTagsFromPrompt } from '../services/geminiService';
+import { detectBPM } from '../services/audioAnalysis';
 
 interface TrackDraft {
   id: string; // temporary id
@@ -10,6 +11,7 @@ interface TrackDraft {
   prompt: string;
   tags: string[];
   audioUrl?: string; // base64
+  bpm?: number;
   isProcessingAudio: boolean;
   isTagging: boolean;
 }
@@ -17,7 +19,7 @@ interface TrackDraft {
 interface AddTrackModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (tracks: { title: string; prompt: string; tags: string[]; audioUrl?: string }[]) => void;
+  onAdd: (tracks: { title: string; prompt: string; tags: string[]; audioUrl?: string; bpm?: number }[]) => void;
 }
 
 const MAX_FILES = 10;
@@ -57,22 +59,44 @@ const AddTrackModal: React.FC<AddTrackModalProps> = ({ isOpen, onClose, onAdd })
 
     setDrafts(prev => [...prev, ...newDrafts]);
 
-    // Process Audio to Base64 asynchronously
-    newDrafts.forEach(draft => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setDrafts(prev => prev.map(d => {
-          if (d.id === draft.id) {
-            return { 
-              ...d, 
-              audioUrl: e.target?.result as string, 
-              isProcessingAudio: false 
-            };
-          }
-          return d;
-        }));
-      };
-      reader.readAsDataURL(draft.file);
+    // Process Audio to Base64 AND Detect BPM asynchronously
+    newDrafts.forEach(async (draft) => {
+      try {
+        const arrayBuffer = await draft.file.arrayBuffer();
+        
+        // 1. Convert to Base64 for storage (dumb conversion)
+        const reader = new FileReader();
+        reader.readAsDataURL(draft.file);
+        reader.onload = async (e) => {
+            const base64 = e.target?.result as string;
+
+             // 2. Decode for BPM (smart analysis)
+            let bpm = 0;
+            try {
+                const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+                const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer.slice(0)); // slice because decode detaches buffer
+                bpm = await detectBPM(audioBuffer);
+            } catch (err) {
+                console.warn("BPM detection failed for", draft.file.name, err);
+            }
+
+            setDrafts(prev => prev.map(d => {
+                if (d.id === draft.id) {
+                    return { 
+                        ...d, 
+                        audioUrl: base64, 
+                        bpm: bpm > 0 ? bpm : undefined,
+                        isProcessingAudio: false 
+                    };
+                }
+                return d;
+            }));
+        };
+
+      } catch (e) {
+        console.error("Error processing file", e);
+        setDrafts(prev => prev.map(d => d.id === draft.id ? { ...d, isProcessingAudio: false } : d));
+      }
     });
   };
 
@@ -136,7 +160,8 @@ const AddTrackModal: React.FC<AddTrackModalProps> = ({ isOpen, onClose, onAdd })
       title: d.title,
       prompt: d.prompt,
       tags: d.tags.length > 0 ? d.tags : d.prompt.split(',').map(s => s.trim()).filter(Boolean),
-      audioUrl: d.audioUrl
+      audioUrl: d.audioUrl,
+      bpm: d.bpm
     }));
 
     onAdd(payload);
@@ -225,7 +250,14 @@ const AddTrackModal: React.FC<AddTrackModalProps> = ({ isOpen, onClose, onAdd })
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs text-slate-300 truncate max-w-full font-medium" title={draft.file.name}>{draft.file.name}</p>
-                      <p className="text-[10px] text-slate-600 mt-0.5 font-mono">{(draft.file.size / 1024 / 1024).toFixed(2)} MB</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <p className="text-[10px] text-slate-600 font-mono">{(draft.file.size / 1024 / 1024).toFixed(2)} MB</p>
+                        {draft.bpm && (
+                            <span className="text-[9px] text-amber-500 font-mono bg-amber-950/30 px-1 rounded flex items-center gap-1">
+                                <Activity size={8} /> {draft.bpm} BPM
+                            </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <input 
@@ -234,14 +266,23 @@ const AddTrackModal: React.FC<AddTrackModalProps> = ({ isOpen, onClose, onAdd })
                     value={draft.title}
                     onChange={(e) => updateDraft(draft.id, { title: e.target.value })}
                   />
+                  <div className="flex items-center gap-2">
+                    <label className="text-[10px] text-slate-500 uppercase font-bold">BPM</label>
+                    <input 
+                        type="number"
+                        className="w-20 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-slate-300 font-mono focus:border-amber-500/50 outline-none"
+                        placeholder="Auto"
+                        value={draft.bpm || ''}
+                        onChange={(e) => updateDraft(draft.id, { bpm: parseInt(e.target.value) || undefined })}
+                    />
+                  </div>
                 </div>
 
                 {/* Middle: Prompt */}
                 <div className="lg:flex-1 flex flex-col gap-3">
-                  <div className="relative">
+                  <div className="relative h-full">
                     <textarea 
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-3 text-sm text-slate-300 placeholder-slate-600 focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 outline-none resize-none transition-all"
-                      rows={2}
+                      className="w-full h-full min-h-[100px] bg-slate-950 border border-slate-800 rounded-lg px-4 py-3 text-sm text-slate-300 placeholder-slate-600 focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 outline-none resize-none transition-all"
                       placeholder="Prompt: Describe the atmosphere, instruments, and mood..."
                       value={draft.prompt}
                       onChange={(e) => updateDraft(draft.id, { prompt: e.target.value })}
