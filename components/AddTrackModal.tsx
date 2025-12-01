@@ -20,11 +20,12 @@ interface AddTrackModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAdd: (tracks: { title: string; prompt: string; tags: string[]; audioUrl?: string; bpm?: number }[]) => void;
+  existingTitles: string[];
 }
 
 const MAX_FILES = 10;
 
-const AddTrackModal: React.FC<AddTrackModalProps> = ({ isOpen, onClose, onAdd }) => {
+const AddTrackModal: React.FC<AddTrackModalProps> = ({ isOpen, onClose, onAdd, existingTitles }) => {
   const [drafts, setDrafts] = useState<TrackDraft[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
@@ -32,6 +33,23 @@ const AddTrackModal: React.FC<AddTrackModalProps> = ({ isOpen, onClose, onAdd })
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
+
+  // --- Helpers ---
+  
+  const getUniqueTitle = (baseName: string, currentDrafts: TrackDraft[]) => {
+      let name = baseName;
+      let counter = 1;
+      
+      const isTaken = (n: string) => {
+          return existingTitles.includes(n) || currentDrafts.some(d => d.title === n);
+      };
+
+      while (isTaken(name)) {
+          name = `${baseName} (${counter})`;
+          counter++;
+      }
+      return name;
+  };
 
   // --- File Processing ---
 
@@ -47,15 +65,28 @@ const AddTrackModal: React.FC<AddTrackModalProps> = ({ isOpen, onClose, onAdd })
       return;
     }
 
-    const newDrafts: TrackDraft[] = validFiles.map(file => ({
-      id: Math.random().toString(36).substr(2, 9),
-      file,
-      title: file.name.replace(/\.[^/.]+$/, ""), // remove extension
-      prompt: '', // User needs to input this
-      tags: [],
-      isProcessingAudio: true,
-      isTagging: false,
-    }));
+    const newDrafts: TrackDraft[] = [];
+    
+    // Create drafts synchronously first to reserve titles
+    let tempDraftsForNaming = [...drafts];
+
+    validFiles.forEach(file => {
+        const rawName = file.name.replace(/\.[^/.]+$/, ""); // remove extension
+        const uniqueTitle = getUniqueTitle(rawName, tempDraftsForNaming);
+        
+        const draft: TrackDraft = {
+            id: Math.random().toString(36).substr(2, 9),
+            file,
+            title: uniqueTitle,
+            prompt: '', 
+            tags: [],
+            isProcessingAudio: true,
+            isTagging: false,
+        };
+        
+        newDrafts.push(draft);
+        tempDraftsForNaming.push(draft);
+    });
 
     setDrafts(prev => [...prev, ...newDrafts]);
 
@@ -182,9 +213,9 @@ const AddTrackModal: React.FC<AddTrackModalProps> = ({ isOpen, onClose, onAdd })
         <div className="p-6 border-b border-slate-900 flex justify-between items-center bg-slate-950 rounded-t-2xl z-10">
           <h2 className="text-2xl font-light text-slate-100 flex items-center gap-3">
             <span className="w-10 h-10 rounded-lg bg-slate-900 border border-amber-500/30 flex items-center justify-center text-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.1)]">
-              <PlusIcon size={20} />
+              <Sparkles size={20} />
             </span>
-            <span>Import Audio</span>
+            <span>Add AI Music</span>
             <span className="text-sm font-normal text-slate-500 ml-2 font-mono border border-slate-800 px-2 py-0.5 rounded">
               {drafts.length}/{MAX_FILES}
             </span>
@@ -223,7 +254,7 @@ const AddTrackModal: React.FC<AddTrackModalProps> = ({ isOpen, onClose, onAdd })
               <Upload className={`w-12 h-12 mb-4 ${isDragging ? 'text-amber-400 animate-bounce' : 'text-slate-600'}`} />
               <div className="text-center">
                 <span className={`font-medium text-lg tracking-wide ${isDragging ? 'text-amber-400' : 'text-slate-400'}`}>
-                  {isDragging ? 'Release to upload' : 'Drop audio files here'}
+                  {isDragging ? 'Release to upload' : 'Drop AI generations here'}
                 </span>
                 <p className="text-slate-600 text-sm mt-2">MP3, WAV • Up to 10 files batch</p>
               </div>
@@ -266,16 +297,6 @@ const AddTrackModal: React.FC<AddTrackModalProps> = ({ isOpen, onClose, onAdd })
                     value={draft.title}
                     onChange={(e) => updateDraft(draft.id, { title: e.target.value })}
                   />
-                  <div className="flex items-center gap-2">
-                    <label className="text-[10px] text-slate-500 uppercase font-bold">BPM</label>
-                    <input 
-                        type="number"
-                        className="w-20 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-slate-300 font-mono focus:border-amber-500/50 outline-none"
-                        placeholder="Auto"
-                        value={draft.bpm || ''}
-                        onChange={(e) => updateDraft(draft.id, { bpm: parseInt(e.target.value) || undefined })}
-                    />
-                  </div>
                 </div>
 
                 {/* Middle: Prompt */}
@@ -344,7 +365,7 @@ const AddTrackModal: React.FC<AddTrackModalProps> = ({ isOpen, onClose, onAdd })
             disabled={drafts.length === 0}
             className="bg-gradient-to-r from-amber-600 via-yellow-600 to-amber-600 text-slate-950 font-bold py-3 px-8 rounded-lg transition-all shadow-[0_0_20px_rgba(245,158,11,0.2)] hover:shadow-[0_0_30px_rgba(245,158,11,0.4)] disabled:opacity-50 disabled:shadow-none hover:scale-105 active:scale-95 disabled:hover:scale-100 uppercase tracking-widest text-sm"
           >
-            Import Records
+            Initialize Records
           </button>
         </div>
 
@@ -352,12 +373,5 @@ const AddTrackModal: React.FC<AddTrackModalProps> = ({ isOpen, onClose, onAdd })
     </div>
   );
 };
-
-// Helper icon since Plus is used in header
-const PlusIcon = ({ size }: { size: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 5v14M5 12h14"/>
-  </svg>
-);
 
 export default AddTrackModal;

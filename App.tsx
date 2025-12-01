@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { ViewState, Track } from './types';
 import { INITIAL_TRACKS } from './constants';
-import { LayoutGrid, Disc, Plus, Settings, FlaskConical } from 'lucide-react';
+import { LayoutGrid, Disc, Sparkles, Settings, FlaskConical } from 'lucide-react';
 import { getAllTracks, addTrackToDB, updateTrackInDB, deleteTrackFromDB } from './services/db';
 import { generateTrackCover } from './services/imageUtils';
 
@@ -52,7 +53,7 @@ const App = () => {
 
   // --- Actions ---
 
-  const handleImportTracks = async (newTracksData: { title: string; prompt: string; tags: string[]; audioUrl?: string }[]) => {
+  const handleImportTracks = async (newTracksData: { title: string; prompt: string; tags: string[]; audioUrl?: string; bpm?: number }[]) => {
     
     const newTracks: Track[] = newTracksData.map(data => ({
       id: Math.random().toString(36).substr(2, 9) + Date.now().toString(),
@@ -62,6 +63,7 @@ const App = () => {
       coverUrl: generateTrackCover(data.title),
       createdAt: Date.now(),
       audioUrl: data.audioUrl,
+      bpm: data.bpm, // FIXED: Ensure BPM is assigned to the new track object
     }));
     
     setTracks(prev => [...newTracks, ...prev]);
@@ -80,6 +82,27 @@ const App = () => {
     if (!track) return;
 
     const updatedTrack = { ...track, prompt: newPrompt };
+    
+    setTracks(prev => prev.map(t => t.id === id ? updatedTrack : t));
+    
+    try {
+        await updateTrackInDB(updatedTrack);
+    } catch (e) {
+        console.error("Failed to update DB", e);
+    }
+  };
+
+  const handleUpdateTitle = async (id: string, newTitle: string) => {
+    const track = tracks.find(t => t.id === id);
+    if (!track) return;
+
+    // Regenerate cover if title changes? Maybe optional. 
+    // Let's keep the cover for continuity, or regenerate?
+    // User expects rename. Let's regenerate cover to match "Algorithm Art" logic, 
+    // OR keep old one. Let's regenerate to stay consistent with the "Title = DNA" philosophy.
+    const newCover = generateTrackCover(newTitle);
+
+    const updatedTrack = { ...track, title: newTitle, coverUrl: newCover };
     
     setTracks(prev => prev.map(t => t.id === id ? updatedTrack : t));
     
@@ -168,6 +191,7 @@ const App = () => {
             onSelectTrack={viewTrack}
             onToggleQueue={toggleQueue}
             onUpdatePrompt={handleUpdatePrompt}
+            onUpdateTitle={handleUpdateTitle}
             onDeleteTrack={handleDeleteTrack}
           />
         );
@@ -232,8 +256,8 @@ const App = () => {
              onClick={() => setIsModalOpen(true)}
              className="w-full bg-gradient-to-r from-slate-800 to-slate-800 hover:from-amber-600 hover:to-yellow-600 text-slate-300 hover:text-white p-3 rounded-lg shadow-lg flex items-center justify-center transition-all duration-300 group border border-slate-800 hover:border-amber-500/50 hover:shadow-[0_0_15px_rgba(245,158,11,0.2)]"
            >
-             <Plus className="w-5 h-5 lg:mr-2 transition-transform group-hover:rotate-90" />
-             <span className="hidden lg:inline font-bold text-sm tracking-wide">Import</span>
+             <Sparkles className="w-5 h-5 lg:mr-2 transition-transform group-hover:scale-110" />
+             <span className="hidden lg:inline font-bold text-sm tracking-wide">Add Record</span>
            </button>
            
            <button 
@@ -259,6 +283,7 @@ const App = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onAdd={handleImportTracks}
+        existingTitles={tracks.map(t => t.title)}
       />
       
       <SettingsModal 

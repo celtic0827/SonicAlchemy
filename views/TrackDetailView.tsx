@@ -13,6 +13,7 @@ interface TrackDetailViewProps {
   onSelectTrack: (id: string) => void;
   onToggleQueue: (id: string, e: React.MouseEvent) => void;
   onUpdatePrompt: (id: string, newPrompt: string) => void;
+  onUpdateTitle: (id: string, newTitle: string) => void;
   onDeleteTrack: (id: string) => void;
 }
 
@@ -24,23 +25,34 @@ const TrackDetailView: React.FC<TrackDetailViewProps> = ({
   onSelectTrack,
   onToggleQueue,
   onUpdatePrompt,
+  onUpdateTitle,
   onDeleteTrack
 }) => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  
+  // Prompt Edit State
   const [isEditingPrompt, setIsEditingPrompt] = useState(false);
   const [editedPrompt, setEditedPrompt] = useState(track.prompt);
   const [isCopied, setIsCopied] = useState(false);
+
+  // Title Edit State
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editedTitle, setEditedTitle] = useState(track.title);
 
   useEffect(() => {
     setIsPlaying(false);
     setIsEditingPrompt(false);
     setEditedPrompt(track.prompt);
+    
+    setIsEditingTitle(false);
+    setEditedTitle(track.title);
+
     if(audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
     }
-  }, [track.id, track.prompt]);
+  }, [track.id, track.prompt, track.title]);
 
   const togglePlay = () => {
     if (!audioRef.current) return;
@@ -56,6 +68,13 @@ const TrackDetailView: React.FC<TrackDetailViewProps> = ({
     if (editedPrompt.trim() !== "") {
       onUpdatePrompt(track.id, editedPrompt);
       setIsEditingPrompt(false);
+    }
+  };
+
+  const handleSaveTitle = () => {
+    if (editedTitle.trim() !== "") {
+        onUpdateTitle(track.id, editedTitle);
+        setIsEditingTitle(false);
     }
   };
 
@@ -161,7 +180,39 @@ const TrackDetailView: React.FC<TrackDetailViewProps> = ({
 
         {/* Right: Info */}
         <div className="md:col-span-8 lg:col-span-9 flex flex-col justify-center">
-          <h1 className="text-4xl lg:text-6xl font-thin text-white mb-2 tracking-tight break-words">{track.title}</h1>
+          
+          {/* Title Section (Editable) */}
+          <div className="mb-2 min-h-[64px] flex items-center group/title">
+             {isEditingTitle ? (
+                 <div className="flex items-center w-full gap-3">
+                     <input 
+                       value={editedTitle}
+                       onChange={(e) => setEditedTitle(e.target.value)}
+                       className="flex-1 bg-transparent border-b border-amber-500 text-4xl lg:text-6xl font-thin text-white outline-none focus:ring-0 placeholder-slate-700"
+                       autoFocus
+                       onKeyDown={(e) => { if(e.key === 'Enter') handleSaveTitle(); if(e.key === 'Escape') { setEditedTitle(track.title); setIsEditingTitle(false); } }}
+                     />
+                     <div className="flex flex-col gap-1">
+                        <button onClick={handleSaveTitle} className="p-1.5 bg-amber-600 text-white rounded hover:bg-amber-500 transition-colors"><Check size={16} /></button>
+                        <button onClick={() => { setEditedTitle(track.title); setIsEditingTitle(false); }} className="p-1.5 bg-slate-800 text-slate-400 rounded hover:bg-slate-700 transition-colors"><X size={16} /></button>
+                     </div>
+                 </div>
+             ) : (
+                 <div className="flex items-start gap-4 w-full">
+                     <h1 className="text-4xl lg:text-6xl font-thin text-white tracking-tight break-words flex-1">
+                        {track.title}
+                     </h1>
+                     <button 
+                        onClick={() => setIsEditingTitle(true)}
+                        className="mt-3 p-2 text-slate-600 hover:text-amber-500 opacity-0 group-hover/title:opacity-100 transition-all rounded hover:bg-slate-900"
+                        title="Rename Track"
+                     >
+                        <Pencil size={20} />
+                     </button>
+                 </div>
+             )}
+          </div>
+
           <div className="flex items-center text-slate-500 text-xs uppercase tracking-widest mb-8">
             <Clock className="w-3 h-3 mr-2" />
             Added {new Date(track.createdAt).toLocaleDateString()}
