@@ -54,18 +54,38 @@ export const generateTrackCover = (title: string, options: CoverOptions = {}): s
   const width = 400;
   const height = 400;
 
-  // Background Gradient
+  // Defs: Gradients and Filters
   svgContent += `
     <defs>
       <linearGradient id="grad${hash}" x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%" style="stop-color:${colorSet[0]};stop-opacity:1" />
         <stop offset="100%" style="stop-color:${colorSet[1]};stop-opacity:1" />
       </linearGradient>
+      
+      <filter id="glow-${hash}" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="15" result="coloredBlur"/>
+        <feMerge>
+            <feMergeNode in="coloredBlur"/>
+            <feMergeNode in="SourceGraphic"/>
+        </feMerge>
+      </filter>
+
+      <filter id="shadow-${hash}">
+        <feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#000" flood-opacity="0.5"/>
+      </filter>
+
+      <pattern id="grid-${hash}" width="40" height="40" patternUnits="userSpaceOnUse">
+        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+      </pattern>
     </defs>
-    <rect width="${width}" height="${height}" fill="url(#grad${hash})" />
   `;
 
-  // Overlay Pattern
+  // 1. Background
+  svgContent += `<rect width="${width}" height="${height}" fill="url(#grad${hash})" />`;
+  // Add subtle texture
+  svgContent += `<rect width="${width}" height="${height}" fill="url(#grid-${hash})" />`;
+
+  // 2. Overlay Pattern (Geometric Shapes)
   const accentColor = "rgba(255, 255, 255, 0.15)";
   
   if (pattern === 'circle') {
@@ -80,32 +100,36 @@ export const generateTrackCover = (title: string, options: CoverOptions = {}): s
      const x = (hash * 5) % width;
      const y = (hash * 11) % height;
      // Grid-like for mid tempo
-     svgContent += `<rect x="0" y="0" width="${width}" height="${height}" fill="url(#grid)" />`;
-     svgContent += `<rect x="${x}" y="${y}" width="120" height="120" transform="rotate(${hash % 90} ${x+60} ${y+60})" fill="${accentColor}" />`;
+     svgContent += `<rect x="${x}" y="${y}" width="140" height="140" transform="rotate(${hash % 90} ${x+70} ${y+70})" fill="${accentColor}" />`;
+     svgContent += `<rect x="${width - x}" y="${height - y}" width="80" height="80" fill="none" stroke="${accentColor}" stroke-width="4" />`;
   } else {
      // Stripe/Diagonal for high energy
-     svgContent += `<path d="M0 0 L${width} ${height}" stroke="${accentColor}" stroke-width="40" />`;
-     svgContent += `<path d="M${width} 0 L0 ${height}" stroke="${accentColor}" stroke-width="20" />`;
-     svgContent += `<path d="M0 ${height/2} L${width} ${height/2}" stroke="${accentColor}" stroke-width="10" transform="rotate(45 ${width/2} ${height/2})" />`;
+     svgContent += `<path d="M0 0 L${width} ${height}" stroke="${accentColor}" stroke-width="60" />`;
+     svgContent += `<path d="M${width} 0 L0 ${height}" stroke="${accentColor}" stroke-width="30" />`;
+     svgContent += `<path d="M0 ${height} L${width} 0" stroke="${accentColor}" stroke-width="10" />`;
   }
 
-  // Center Content: Emoji or Text
-  if (options.emoji) {
+  // 3. Center Content: Emoji or Text
+  if (options.emoji && options.emoji.trim() !== "") {
+    // Spotlight behind emoji
+    svgContent += `<circle cx="${width/2}" cy="${height/2}" r="110" fill="rgba(0,0,0,0.2)" filter="url(#glow-${hash})" />`;
+    // Emoji text
     svgContent += `
-        <text x="50%" y="55%" dy=".1em" text-anchor="middle" font-family="Apple Color Emoji, Segoe UI Emoji, sans-serif" font-size="160">
+        <text x="50%" y="55%" dy=".1em" text-anchor="middle" font-family="Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif" font-size="180" filter="url(#shadow-${hash})">
             ${options.emoji}
         </text>
     `;
   } else {
+    // Fallback Text
     const firstLetter = title.charAt(0).toUpperCase();
     svgContent += `
-        <text x="50%" y="50%" dy=".35em" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="120" fill="rgba(255,255,255,0.2)">
+        <text x="50%" y="50%" dy=".35em" text-anchor="middle" font-family="Arial, sans-serif" font-weight="900" font-size="150" fill="rgba(255,255,255,0.25)">
         ${firstLetter}
         </text>
     `;
   }
 
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">${svgContent}</svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${svgContent}</svg>`;
   
   // Base64 encode
   return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
