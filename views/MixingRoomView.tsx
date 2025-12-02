@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Track } from '../types';
-import { generateRefinedPrompt } from '../services/geminiService';
-import { X, Sparkles, Wand2, RefreshCcw, Copy, FlaskConical } from 'lucide-react';
+import { generateRefinedPrompt, AlchemyMode } from '../services/geminiService';
+import { X, Sparkles, RefreshCcw, Copy, FlaskConical, ShieldCheck, Zap, Biohazard } from 'lucide-react';
 
 interface MixingRoomViewProps {
   tracks: Track[];
@@ -25,6 +25,7 @@ const MixingRoomView: React.FC<MixingRoomViewProps> = ({ tracks, queueIds, onRem
     const tagCounts: Record<string, number> = {};
     allTags.forEach(t => tagCounts[t] = (tagCounts[t] || 0) + 1);
 
+    // Identify common vs unique tags
     const threshold = Math.max(1, Math.ceil(selectedTracks.length * 0.5));
     
     const commonTags = Object.entries(tagCounts)
@@ -35,59 +36,77 @@ const MixingRoomView: React.FC<MixingRoomViewProps> = ({ tracks, queueIds, onRem
       .filter(([_, count]) => count < threshold)
       .map(([tag]) => tag);
 
-    return { commonTags, uniqueTags };
+    // Fallbacks if distribution is skewed
+    let finalCommon = commonTags;
+    let finalUnique = uniqueTags;
+
+    if (finalCommon.length === 0) {
+        const sorted = Object.entries(tagCounts).sort((a,b) => b[1] - a[1]);
+        finalCommon = sorted.slice(0, 3).map(([t]) => t);
+        finalUnique = sorted.slice(3).map(([t]) => t);
+    }
+
+    return { commonTags: finalCommon, uniqueTags: finalUnique };
   }, [selectedTracks]);
 
-  const handleMix = async () => {
+  const handleMix = async (mode: AlchemyMode) => {
     if (!analysis) return;
     setIsGenerating(true);
+    setGeneratedPrompt(null); // Clear previous
 
     const { commonTags, uniqueTags } = analysis;
-    const shuffledUnique = [...uniqueTags].sort(() => 0.5 - Math.random());
-    const randomSelection = shuffledUnique.slice(0, 3);
     
-    const basePromptList = [...commonTags, ...randomSelection];
-    const basePromptString = basePromptList.join(', ');
+    // Determine spice level based on mode
+    let spiceCount = 0;
+    if (mode === 'stabilize') spiceCount = 1;      // Minimal spice
+    if (mode === 'synthesize') spiceCount = 3;     // Balanced
+    if (mode === 'mutate') spiceCount = 6;         // Chaotic
 
-    const polished = await generateRefinedPrompt(basePromptString);
+    // Pick random spice
+    const shuffledUnique = [...uniqueTags].sort(() => 0.5 - Math.random());
+    const randomSpice = shuffledUnique.slice(0, spiceCount);
+    
+    // Call Service
+    const polished = await generateRefinedPrompt(commonTags, randomSpice, mode);
+    
     setGeneratedPrompt(polished);
     setIsGenerating(false);
   };
 
   if (selectedTracks.length === 0) {
     return (
-      <div className="h-full flex flex-col items-center justify-center text-slate-600 space-y-6">
-        <div className="w-24 h-24 rounded-full border border-slate-800 flex items-center justify-center bg-slate-900/50">
-           <FlaskConical className="w-10 h-10 opacity-30" />
+      <div className="h-full flex flex-col items-center justify-center text-slate-600 space-y-6 animate-in fade-in zoom-in duration-500">
+        <div className="w-20 h-20 rounded-full border border-slate-800 flex items-center justify-center bg-slate-900/50">
+           <FlaskConical className="w-8 h-8 opacity-30" />
         </div>
         <div className="text-center">
-            <p className="text-xl font-light text-slate-400">The Crucible is Empty</p>
-            <p className="text-sm mt-2">Select tracks from the library to begin transmutation.</p>
+            <p className="text-lg font-light text-slate-400">The Crucible is Empty</p>
+            <p className="text-xs mt-2 text-slate-600">Select tracks from the library to begin transmutation.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full pb-10">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-full pb-20 lg:pb-0">
       
-      {/* Left: Ingredients */}
-      <div className="lg:col-span-4 flex flex-col h-full bg-slate-900 border border-slate-800 rounded-lg overflow-hidden">
-        <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950">
-          <h2 className="text-sm font-bold text-amber-500 uppercase tracking-widest flex items-center">
+      {/* Left: Ingredients Panel */}
+      <div className="lg:col-span-4 flex flex-col h-[40vh] lg:h-full bg-slate-900 border border-slate-800 rounded-lg overflow-hidden order-2 lg:order-1">
+        <div className="p-3 border-b border-slate-800 flex justify-between items-center bg-slate-950">
+          <h2 className="text-xs font-bold text-amber-500 uppercase tracking-widest flex items-center">
             Ingredients ({selectedTracks.length})
           </h2>
-          <button onClick={onClearQueue} className="text-[10px] text-red-500 hover:text-red-400 uppercase tracking-wider font-semibold border border-red-900/30 px-2 py-1 rounded hover:bg-red-900/10 transition-colors">
-            Empty Vessel
+          <button onClick={onClearQueue} className="text-[9px] text-red-500 hover:text-red-400 uppercase tracking-wider font-semibold border border-red-900/30 px-2 py-0.5 rounded hover:bg-red-900/10 transition-colors">
+            Clear
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
           {selectedTracks.map(track => (
             <div key={track.id} className="flex items-center bg-slate-950 p-2 rounded border border-slate-800/50 group hover:border-amber-900/50 transition-all">
-              <img src={track.coverUrl} className="w-10 h-10 rounded-sm object-cover opacity-70 group-hover:opacity-100" alt="" />
+              <img src={track.coverUrl} className="w-8 h-8 rounded-sm object-cover opacity-70 group-hover:opacity-100" alt="" />
               <div className="ml-3 flex-1 min-w-0">
-                <h4 className="font-medium text-sm text-slate-300 truncate group-hover:text-amber-100">{track.title}</h4>
+                <h4 className="font-medium text-xs text-slate-300 truncate group-hover:text-amber-100">{track.title}</h4>
                 <div className="flex gap-1 overflow-hidden mt-0.5">
                   {track.tags.slice(0,3).map(t => (
                     <span key={t} className="text-[9px] text-slate-500">{t}</span>
@@ -96,26 +115,30 @@ const MixingRoomView: React.FC<MixingRoomViewProps> = ({ tracks, queueIds, onRem
               </div>
               <button 
                 onClick={() => onRemoveFromQueue(track.id)}
-                className="p-2 text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="p-1.5 text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
               >
-                <X size={14} />
+                <X size={12} />
               </button>
             </div>
           ))}
         </div>
         
-        {/* DNA */}
+        {/* DNA Analysis */}
         {analysis && (
-          <div className="p-4 bg-slate-950 border-t border-slate-800">
-            <h3 className="text-[10px] font-bold text-slate-500 uppercase mb-2">Extracted Elements</h3>
-            <div className="flex flex-wrap gap-1.5">
+          <div className="p-3 bg-slate-950 border-t border-slate-800">
+            <h3 className="text-[9px] font-bold text-slate-500 uppercase mb-2 flex justify-between">
+                <span>Core Essence</span>
+                <span>Volatile Elements</span>
+            </h3>
+            <div className="flex flex-wrap gap-1">
               {analysis.commonTags.map(t => (
-                <span key={t} className="text-[10px] bg-amber-900/20 text-amber-500 border border-amber-900/30 px-1.5 py-0.5 rounded">
+                <span key={t} className="text-[9px] bg-amber-950/20 text-amber-500 border border-amber-900/30 px-1.5 py-0.5 rounded">
                   {t}
                 </span>
               ))}
-              {analysis.uniqueTags.slice(0, 5).map(t => (
-                <span key={t} className="text-[10px] bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded border border-transparent">
+              <div className="w-full border-b border-slate-800/50 my-1"></div>
+              {analysis.uniqueTags.slice(0, 8).map(t => (
+                <span key={t} className="text-[9px] bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded border border-transparent">
                   {t}
                 </span>
               ))}
@@ -124,56 +147,87 @@ const MixingRoomView: React.FC<MixingRoomViewProps> = ({ tracks, queueIds, onRem
         )}
       </div>
 
-      {/* Right: Transmutation */}
-      <div className="lg:col-span-8 flex flex-col items-center justify-center p-8 relative rounded-lg border border-slate-800 bg-slate-900/30">
+      {/* Right: Transmutation Controls (Compact) */}
+      <div className="lg:col-span-8 flex flex-col p-4 lg:p-6 relative rounded-lg border border-slate-800 bg-slate-900/30 order-1 lg:order-2 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-950 to-black -z-10" />
         
-        <div className="w-full max-w-lg text-center">
-          <div className="relative inline-block group">
-              <div className="absolute inset-0 bg-amber-500/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
-              <Wand2 className="w-12 h-12 text-amber-600 mx-auto mb-6 relative z-10" />
-          </div>
+        <div className="flex-1 flex flex-col items-center justify-center w-full max-w-2xl mx-auto">
           
-          <h2 className="text-3xl font-serif text-slate-200 mb-2">Alchemical Synthesis</h2>
-          <p className="text-slate-500 mb-10 text-sm max-w-xs mx-auto">Combine selected elements to forge a new prompt creation.</p>
-
-          <button
-            onClick={handleMix}
-            disabled={isGenerating}
-            className="group relative inline-flex items-center justify-center px-10 py-4 font-bold text-slate-950 transition-all duration-300 bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-600 rounded-lg hover:shadow-[0_0_20px_rgba(245,158,11,0.4)] disabled:opacity-50 disabled:shadow-none hover:scale-105 active:scale-95 border border-amber-400"
-          >
-            {isGenerating ? (
-              <>
-                <RefreshCcw className="w-5 h-5 mr-2 animate-spin" /> Transmuting...
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-5 h-5 mr-2" /> GENERATE
-              </>
-            )}
-          </button>
-        </div>
-
-        {generatedPrompt && (
-          <div className="mt-12 w-full max-w-2xl animate-in fade-in zoom-in duration-500">
-            <div className="bg-slate-950 border border-amber-900/40 rounded p-8 shadow-2xl relative group">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-slate-950 border border-amber-900/40 text-amber-500 text-[10px] font-bold px-3 py-1 uppercase tracking-widest">
-                Result
-              </div>
-              <p className="text-xl text-slate-300 leading-relaxed font-serif text-center italic">
-                "{generatedPrompt}"
-              </p>
-              <div className="mt-6 flex justify-center opacity-0 group-hover:opacity-100 transition-opacity delay-100">
-                <button 
-                  onClick={() => navigator.clipboard.writeText(generatedPrompt)}
-                  className="flex items-center text-xs text-amber-600 hover:text-amber-400 transition-colors uppercase tracking-widest font-bold"
-                >
-                  <Copy className="w-3 h-3 mr-2" /> Copy to clipboard
-                </button>
-              </div>
-            </div>
+          <div className="mb-6 text-center">
+            <h2 className="text-xl font-serif text-slate-200 tracking-tight flex items-center justify-center gap-2">
+                 <FlaskConical className="w-5 h-5 text-amber-600" /> 
+                 Alchemical Synthesis
+            </h2>
+            <p className="text-slate-500 text-xs mt-1">Select a transmutation process to forge a new prompt.</p>
           </div>
-        )}
+
+          {/* 3-Level Buttons */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full mb-8">
+            
+            {/* Stabilize */}
+            <button
+                onClick={() => handleMix('stabilize')}
+                disabled={isGenerating}
+                className="group flex flex-col items-center justify-center p-4 rounded-lg border bg-slate-950/50 hover:bg-cyan-950/20 border-slate-800 hover:border-cyan-500/50 transition-all hover:-translate-y-1"
+            >
+                <div className="p-2 rounded-full bg-cyan-950/30 text-cyan-500 mb-2 group-hover:scale-110 transition-transform">
+                    <ShieldCheck size={18} />
+                </div>
+                <span className="text-xs font-bold text-cyan-100 uppercase tracking-widest mb-1">Stabilize</span>
+                <span className="text-[10px] text-cyan-500/60 text-center">High Coherence<br/>Min. Volatility</span>
+            </button>
+
+            {/* Synthesize */}
+            <button
+                onClick={() => handleMix('synthesize')}
+                disabled={isGenerating}
+                className="group flex flex-col items-center justify-center p-4 rounded-lg border bg-slate-950/50 hover:bg-amber-950/20 border-slate-800 hover:border-amber-500/50 transition-all hover:-translate-y-1 relative overflow-hidden"
+            >
+                <div className="absolute inset-0 bg-amber-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="p-2 rounded-full bg-amber-950/30 text-amber-500 mb-2 group-hover:scale-110 transition-transform">
+                    {isGenerating ? <RefreshCcw className="animate-spin" size={18} /> : <Zap size={18} />}
+                </div>
+                <span className="text-xs font-bold text-amber-100 uppercase tracking-widest mb-1">Synthesize</span>
+                <span className="text-[10px] text-amber-500/60 text-center">Balanced Mix<br/>Standard Fusion</span>
+            </button>
+
+            {/* Mutate */}
+            <button
+                onClick={() => handleMix('mutate')}
+                disabled={isGenerating}
+                className="group flex flex-col items-center justify-center p-4 rounded-lg border bg-slate-950/50 hover:bg-rose-950/20 border-slate-800 hover:border-rose-500/50 transition-all hover:-translate-y-1"
+            >
+                <div className="p-2 rounded-full bg-rose-950/30 text-rose-500 mb-2 group-hover:scale-110 transition-transform">
+                    <Biohazard size={18} />
+                </div>
+                <span className="text-xs font-bold text-rose-100 uppercase tracking-widest mb-1">Mutate</span>
+                <span className="text-[10px] text-rose-500/60 text-center">High Chaos<br/>Experimental</span>
+            </button>
+          </div>
+
+          {/* Result Area */}
+          {generatedPrompt && (
+            <div className="w-full animate-in slide-in-from-bottom-2 fade-in duration-500">
+                <div className="bg-slate-950 border border-amber-900/30 rounded-lg p-6 relative shadow-2xl">
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-900 via-amber-600 to-rose-900 opacity-50 rounded-t-lg"></div>
+                    
+                    <p className="text-base text-slate-300 font-serif leading-relaxed italic text-center mb-4 selection:bg-amber-500/30">
+                        "{generatedPrompt}"
+                    </p>
+                    
+                    <div className="flex justify-center">
+                        <button 
+                            onClick={() => navigator.clipboard.writeText(generatedPrompt)}
+                            className="flex items-center gap-2 text-[10px] uppercase font-bold tracking-widest bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white px-4 py-2 rounded-full border border-slate-800 transition-colors"
+                        >
+                            <Copy size={12} /> Copy Result
+                        </button>
+                    </div>
+                </div>
+            </div>
+          )}
+
+        </div>
       </div>
     </div>
   );
