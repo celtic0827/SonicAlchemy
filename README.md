@@ -1,37 +1,37 @@
 # SonicAlchemy ⚗️
 
-**"Transmute ideas into sonic reality."**
+> **The AI Music Alchemist's Workbench.**
 
-SonicAlchemy is a premium, local-first AI music manager designed for prompt engineering workflows. It combines local asset management with Google's Gemini AI to analyze, tag, and refine music generation prompts in a "Dark Luxury" environment.
+SonicAlchemy is a premium, local-first workspace designed for AI music creators. It leverages **Google Gemini AI** to analyze, manage, and "transmute" your audio library into new creative prompts, all wrapped in a **Dark Luxury** aesthetic.
 
 ![SonicAlchemy Interface](https://upload.cc/i1/2025/12/01/53Gp1a.jpg)
 
-## ✨ Key Features
+## ⚡ Core Features
 
-*   **⚗️ The Mixing Room**: Select multiple tracks to analyze their shared DNA. Synthesize new, evolved prompts using Gemini AI.
-*   **🌊 Visual Audio**: Real-time gold frequency analyzers and static waveform rendering for precise playback control.
-*   **🧠 AI Tagging**: Automatic extraction of mood, genre, and instrument tags from raw text descriptions.
-*   **🔒 Local Persistence**: 100% local storage via IndexedDB. No cloud uploads required for audio files.
-*   **🎨 Algorithmic Art**: Deterministic geometric cover art generation based on track titles.
+*   **⚗️ Prompt Alchemy**: Blend the "DNA" of multiple tracks to synthesize new, evolved prompts using advanced AI logic (Stabilize, Synthesize, Mutate).
+*   **🧠 Smart Intelligence**: Automatic **BPM Detection**, Mood Tagging, and Emoji/Color extraction for every track.
+*   **🌊 Visual Audio**: Professional-grade gold frequency visualizer and waveform scrubber.
+*   **🔒 Local Vault**: 100% Client-side storage via **IndexedDB**. Your audio files never leave your device.
+*   **🎨 Algorithmic Art**: Deterministic, generative cover art based on track metadata and rhythm.
 
 ## 🛠️ Tech Stack
 
-*   **Core**: React 19, TypeScript, Vite
-*   **UI**: Tailwind CSS, Lucide Icons
-*   **AI**: Google Gemini API (`@google/genai`)
-*   **Audio**: Web Audio API (Visualization & Analysis)
+*   **Frontend**: React 19, TypeScript, Vite
+*   **Styling**: Tailwind CSS (Obsidian & Gold Theme)
+*   **AI Engine**: Google Gemini API (`gemini-2.5-flash`)
+*   **Audio**: Web Audio API (Analysis & Visualization)
 
-## 🚀 Getting Started
+## 🚀 Quick Start
 
-1.  **Clone & Install**
+1.  **Clone**
     ```bash
     git clone https://github.com/yourusername/sonic-alchemy.git
     cd sonic-alchemy
     npm install
     ```
 
-2.  **Configure API Key**
-    Create a `.env` file:
+2.  **Configure**
+    Create a `.env` file in the root:
     ```env
     API_KEY=your_google_gemini_api_key
     ```
