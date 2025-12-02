@@ -138,6 +138,8 @@ const AddTrackModal: React.FC<AddTrackModalProps> = ({ isOpen, onClose, onAdd, e
     if (e.target.files) {
       processFiles(Array.from(e.target.files));
     }
+    // Reset the input value to allow re-selecting the same file if it was deleted
+    e.target.value = '';
   };
 
   // --- Drag & Drop ---
