@@ -235,28 +235,19 @@ const LibraryView: React.FC<LibraryViewProps> = ({
     if (prevId) handlePlay(prevId);
   };
 
-  // FORCE GLASS STYLE
-  // Using very low opacity (0.15) to allow content to show through,
-  // High blur (24px) for the frost effect,
-  // High saturation (180%) to make colors pop behind the glass,
-  // Translate3d to force GPU layer.
-  const glassStyle: React.CSSProperties = {
-    backgroundColor: 'rgba(2, 6, 23, 0.15)', // Very transparent slate-950
-    backdropFilter: 'blur(24px) saturate(180%)',
-    WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-    border: '1px solid rgba(255, 255, 255, 0.08)',
-    boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.36)',
-    transform: 'translate3d(0,0,0)', // GPU Force
-    willChange: 'backdrop-filter',
-    isolation: 'isolate',
+  // SOLID OPAQUE STYLE
+  // No blur, no transparency. Just solid slate-950 with borders and shadows.
+  const solidStyle: React.CSSProperties = {
+    backgroundColor: '#020617', // Solid Slate 950
+    border: '1px solid #1e293b', // Slate 800
+    boxShadow: '0 10px 40px -10px rgba(0,0,0,0.8)', // Deep shadow for separation
   };
 
-  // Style for inner dropdowns (needs to be darker to be readable)
-  const dropdownGlassStyle: React.CSSProperties = {
-    backgroundColor: 'rgba(2, 6, 23, 0.85)',
-    backdropFilter: 'blur(16px)',
-    WebkitBackdropFilter: 'blur(16px)',
-    border: '1px solid rgba(255, 255, 255, 0.05)',
+  // Style for inner dropdowns
+  const dropdownSolidStyle: React.CSSProperties = {
+    backgroundColor: '#0f172a', // Slate 900
+    border: '1px solid #334155', // Slate 700
+    boxShadow: '0 10px 30px rgba(0,0,0,0.8)',
   };
 
   return (
@@ -278,11 +269,11 @@ const LibraryView: React.FC<LibraryViewProps> = ({
       */}
       <div className="fixed top-0 left-16 lg:left-64 right-0 z-50 p-4 lg:p-8 pointer-events-none">
          {/* 
-            Glass Panel Container 
+            Panel Container (Solid Opaque)
          */}
          <div 
             className="max-w-full rounded-xl flex flex-col relative pointer-events-auto transition-all duration-300"
-            style={glassStyle}
+            style={solidStyle}
          >
             
             {/* Top Row: Search & Toggles */}
@@ -296,7 +287,7 @@ const LibraryView: React.FC<LibraryViewProps> = ({
                         placeholder="Search library..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-slate-900/30 border border-slate-700/30 rounded-lg py-2.5 pl-10 pr-8 text-sm text-slate-200 focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 outline-none transition-all placeholder-slate-500 hover:bg-slate-900/50"
+                        className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2.5 pl-10 pr-8 text-sm text-slate-200 focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 outline-none transition-all placeholder-slate-500 hover:bg-slate-800"
                     />
                     {searchQuery && (
                         <button 
@@ -309,15 +300,15 @@ const LibraryView: React.FC<LibraryViewProps> = ({
                </div>
 
                {/* Separator */}
-               <div className="w-px h-6 bg-white/10 mx-1 hidden sm:block"></div>
+               <div className="w-px h-6 bg-slate-800 mx-1 hidden sm:block"></div>
 
                {/* Filter Toggle Button */}
                <button 
                  onClick={() => setIsFiltersOpen(!isFiltersOpen)}
                  className={`relative p-2.5 rounded-lg border transition-all flex items-center gap-2 text-sm font-medium ${
                     isFiltersOpen || isFilterActive
-                     ? 'bg-amber-950/40 border-amber-500/50 text-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.1)]' 
-                     : 'bg-slate-900/20 border-slate-700/30 text-slate-400 hover:text-white hover:border-slate-500 hover:bg-slate-900/40'
+                     ? 'bg-amber-950/20 border-amber-500/50 text-amber-500' 
+                     : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:border-slate-500 hover:bg-slate-800'
                  }`}
                >
                  <SlidersHorizontal size={18} />
@@ -328,16 +319,16 @@ const LibraryView: React.FC<LibraryViewProps> = ({
                </button>
 
                {/* View Toggle Group */}
-               <div className="flex bg-slate-900/30 p-1 rounded-lg border border-slate-700/30 shrink-0">
+               <div className="flex bg-slate-900 p-1 rounded-lg border border-slate-800 shrink-0">
                   <button 
                     onClick={() => handleSetViewMode('grid')}
-                    className={`p-1.5 rounded transition-all ${viewMode === 'grid' ? 'bg-slate-800/60 text-amber-500 shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
+                    className={`p-1.5 rounded transition-all ${viewMode === 'grid' ? 'bg-slate-800 text-amber-500 shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
                   >
                     <LayoutGrid size={16} />
                   </button>
                   <button 
                     onClick={() => handleSetViewMode('list')}
-                    className={`p-1.5 rounded transition-all ${viewMode === 'list' ? 'bg-slate-800/60 text-amber-500 shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
+                    className={`p-1.5 rounded transition-all ${viewMode === 'list' ? 'bg-slate-800 text-amber-500 shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
                   >
                     <List size={16} />
                   </button>
@@ -346,13 +337,12 @@ const LibraryView: React.FC<LibraryViewProps> = ({
 
             {/* 
               --- Absolute Overlay Panel (Expandable) ---
-              Uses the same glassStyle to maintain continuity.
-              Margin top ensures it sits nicely below.
+              Uses the same solidStyle for continuity.
             */}
             {isFiltersOpen && (
                 <div 
                     className="absolute top-[calc(100%+8px)] left-0 right-0 rounded-xl p-5 z-50 animate-in slide-in-from-top-2 duration-200"
-                    style={glassStyle}
+                    style={solidStyle}
                 >
                     <div className="flex flex-col gap-4">
                         
@@ -364,20 +354,20 @@ const LibraryView: React.FC<LibraryViewProps> = ({
                         />
                         
                         {/* 2. BPM & Actions Row */}
-                        <div className="flex flex-wrap items-center gap-4 mt-2 border-t border-white/5 pt-4">
+                        <div className="flex flex-wrap items-center gap-4 mt-2 border-t border-slate-800 pt-4">
                             
                             {/* BPM Selector */}
-                            <div className="flex items-center bg-slate-900/30 border border-slate-800/50 rounded-md shadow-sm relative">
-                                <div className="flex items-center gap-2 px-3 py-2 bg-slate-900/40 border-r border-slate-800/50 text-slate-500 rounded-l-md">
+                            <div className="flex items-center bg-slate-900 border border-slate-800 rounded-md shadow-sm relative">
+                                <div className="flex items-center gap-2 px-3 py-2 bg-slate-950 border-r border-slate-800 text-slate-500 rounded-l-md">
                                     <Activity size={14} className="text-amber-600" />
                                     <span className="font-bold uppercase tracking-wider text-[10px]">Tempo</span>
                                 </div>
 
                                 {/* Min Selector */}
-                                <div className="border-r border-slate-800/50 relative">
+                                <div className="border-r border-slate-800 relative">
                                     <button 
                                     onClick={() => setActiveBpmSelector(activeBpmSelector === 'min' ? null : 'min')}
-                                    className={`flex items-center justify-between px-3 py-2 min-w-[90px] text-slate-200 focus:outline-none font-mono text-xs transition-colors hover:bg-slate-800/30 ${activeBpmSelector === 'min' ? 'text-amber-500 bg-amber-950/20' : ''}`}
+                                    className={`flex items-center justify-between px-3 py-2 min-w-[90px] text-slate-200 focus:outline-none font-mono text-xs transition-colors hover:bg-slate-800 ${activeBpmSelector === 'min' ? 'text-amber-500 bg-amber-950/20' : ''}`}
                                     >
                                         <span className={bpmMin ? 'text-amber-500 font-bold' : 'text-slate-500'}>
                                             {bpmMin ? `${bpmMin}` : 'Min'}
@@ -390,11 +380,11 @@ const LibraryView: React.FC<LibraryViewProps> = ({
                                         <div className="fixed inset-0 z-30" onClick={() => setActiveBpmSelector(null)}></div>
                                         <div 
                                             className="absolute top-full mt-2 left-0 w-72 rounded-lg shadow-2xl z-40 p-3 grid grid-cols-4 gap-2 animate-in fade-in zoom-in-95 duration-200"
-                                            style={dropdownGlassStyle}
+                                            style={dropdownSolidStyle}
                                         >
                                             <button 
                                                 onClick={() => { setBpmMin(null); setActiveBpmSelector(null); }}
-                                                className={`col-span-4 p-2 text-center text-[10px] uppercase font-bold tracking-widest rounded border border-slate-800 hover:bg-slate-900/50 transition-colors ${bpmMin === null ? 'bg-amber-950/30 text-amber-500 border-amber-500/30' : 'text-slate-500'}`}
+                                                className={`col-span-4 p-2 text-center text-[10px] uppercase font-bold tracking-widest rounded border border-slate-800 hover:bg-slate-800 transition-colors ${bpmMin === null ? 'bg-amber-950/30 text-amber-500 border-amber-500/30' : 'text-slate-500'}`}
                                             >
                                                 Any (No Limit)
                                             </button>
@@ -403,7 +393,7 @@ const LibraryView: React.FC<LibraryViewProps> = ({
                                                     <button
                                                         key={val}
                                                         onClick={() => { setBpmMin(val); setActiveBpmSelector(null); }}
-                                                        className={`p-3 text-center font-mono text-xs rounded border border-slate-800 hover:bg-slate-900/50 transition-colors ${bpmMin === val ? 'bg-amber-500 text-slate-950 font-bold border-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.3)]' : 'text-slate-400 hover:text-amber-500 hover:border-amber-500/30'}`}
+                                                        className={`p-3 text-center font-mono text-xs rounded border border-slate-800 hover:bg-slate-800 transition-colors ${bpmMin === val ? 'bg-amber-500 text-slate-950 font-bold border-amber-500' : 'text-slate-400 hover:text-amber-500 hover:border-amber-500/30'}`}
                                                     >
                                                         {val}
                                                     </button>
@@ -422,7 +412,7 @@ const LibraryView: React.FC<LibraryViewProps> = ({
                                 <div className="relative">
                                     <button 
                                     onClick={() => setActiveBpmSelector(activeBpmSelector === 'max' ? null : 'max')}
-                                    className={`flex items-center justify-between px-3 py-2 min-w-[90px] text-slate-200 focus:outline-none font-mono text-xs transition-colors hover:bg-slate-800/30 rounded-r-md ${activeBpmSelector === 'max' ? 'text-amber-500 bg-amber-950/20' : ''}`}
+                                    className={`flex items-center justify-between px-3 py-2 min-w-[90px] text-slate-200 focus:outline-none font-mono text-xs transition-colors hover:bg-slate-800 rounded-r-md ${activeBpmSelector === 'max' ? 'text-amber-500 bg-amber-950/20' : ''}`}
                                     >
                                         <span className={bpmMax ? 'text-amber-500 font-bold' : 'text-slate-500'}>
                                             {bpmMax ? `${bpmMax}` : 'Max'}
@@ -435,11 +425,11 @@ const LibraryView: React.FC<LibraryViewProps> = ({
                                         <div className="fixed inset-0 z-30" onClick={() => setActiveBpmSelector(null)}></div>
                                         <div 
                                             className="absolute top-full mt-2 left-0 w-72 rounded-lg shadow-2xl z-40 p-3 grid grid-cols-4 gap-2 animate-in fade-in zoom-in-95 duration-200"
-                                            style={dropdownGlassStyle}
+                                            style={dropdownSolidStyle}
                                         >
                                             <button 
                                                 onClick={() => { setBpmMax(null); setActiveBpmSelector(null); }}
-                                                className={`col-span-4 p-2 text-center text-[10px] uppercase font-bold tracking-widest rounded border border-slate-800 hover:bg-slate-900/50 transition-colors ${bpmMax === null ? 'bg-amber-950/30 text-amber-500 border-amber-500/30' : 'text-slate-500'}`}
+                                                className={`col-span-4 p-2 text-center text-[10px] uppercase font-bold tracking-widest rounded border border-slate-800 hover:bg-slate-800 transition-colors ${bpmMax === null ? 'bg-amber-950/30 text-amber-500 border-amber-500/30' : 'text-slate-500'}`}
                                             >
                                                 Any (No Limit)
                                             </button>
@@ -448,7 +438,7 @@ const LibraryView: React.FC<LibraryViewProps> = ({
                                                     <button
                                                         key={val}
                                                         onClick={() => { setBpmMax(val); setActiveBpmSelector(null); }}
-                                                        className={`p-3 text-center font-mono text-xs rounded border border-slate-800 hover:bg-slate-900/50 transition-colors ${bpmMax === val ? 'bg-amber-500 text-slate-950 font-bold border-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.3)]' : 'text-slate-400 hover:text-amber-500 hover:border-amber-500/30'}`}
+                                                        className={`p-3 text-center font-mono text-xs rounded border border-slate-800 hover:bg-slate-800 transition-colors ${bpmMax === val ? 'bg-amber-500 text-slate-950 font-bold border-amber-500' : 'text-slate-400 hover:text-amber-500 hover:border-amber-500/30'}`}
                                                     >
                                                         {val}
                                                     </button>
