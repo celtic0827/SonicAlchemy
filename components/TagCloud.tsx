@@ -33,7 +33,7 @@ const TagCloud: React.FC<TagCloudProps> = ({ tracks, selectedTags, onToggleTag }
   return (
     <div className="w-full">
       <div className="flex flex-wrap gap-2 items-center">
-        <div className="w-full text-[10px] font-bold text-amber-600/70 uppercase tracking-widest mb-2 border-b border-amber-900/20 pb-1">
+        <div className="w-full text-[10px] font-bold text-amber-600/70 uppercase tracking-widest mb-2 border-b border-white/5 pb-1">
           Frequency Filters
         </div>
         {tagStats.map((stat) => {
@@ -43,10 +43,10 @@ const TagCloud: React.FC<TagCloudProps> = ({ tracks, selectedTags, onToggleTag }
               key={stat.tag}
               onClick={() => onToggleTag(stat.tag)}
               className={`
-                flex items-center space-x-2 px-3 py-1.5 rounded text-xs transition-all duration-300 border
+                flex items-center space-x-2 px-3 py-1.5 rounded text-xs transition-all duration-300 border backdrop-blur-sm
                 ${isSelected 
-                  ? 'bg-amber-500 text-slate-950 border-amber-500 font-bold shadow-[0_0_15px_rgba(245,158,11,0.3)] scale-105' 
-                  : 'bg-slate-900 text-slate-400 border-slate-800 hover:border-amber-500/30 hover:text-amber-400'}
+                  ? 'bg-amber-500/90 text-slate-950 border-amber-500 font-bold shadow-[0_0_15px_rgba(245,158,11,0.3)] scale-105' 
+                  : 'bg-slate-800/40 text-slate-400 border-slate-700/50 hover:bg-slate-700/50 hover:border-amber-500/30 hover:text-amber-400'}
               `}
             >
               <span>{stat.tag}</span>

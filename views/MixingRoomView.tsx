@@ -1,8 +1,8 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Track } from '../types';
 import { generateRefinedPrompt, AlchemyMode } from '../services/geminiService';
-import { X, Sparkles, RefreshCcw, Copy, FlaskConical, ShieldCheck, Zap, Biohazard, Loader2, Check } from 'lucide-react';
+import { X, Sparkles, RefreshCcw, Copy, FlaskConical, ShieldCheck, Zap, Biohazard, Loader2, Check, History, Clock } from 'lucide-react';
 
 interface MixingRoomViewProps {
   tracks: Track[];
@@ -11,8 +11,30 @@ interface MixingRoomViewProps {
   onClearQueue: () => void;
 }
 
+interface HistoryItem {
+    id: string;
+    prompt: string;
+    mode: AlchemyMode;
+    timestamp: number;
+}
+
 const MixingRoomView: React.FC<MixingRoomViewProps> = ({ tracks, queueIds, onRemoveFromQueue, onClearQueue }) => {
   const [generatedPrompt, setGeneratedPrompt] = useState<string | null>(null);
+  
+  // Initialize history from Local Storage for persistence
+  const [history, setHistory] = useState<HistoryItem[]>(() => {
+    try {
+        const saved = localStorage.getItem('alchemyHistory');
+        return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+        return [];
+    }
+  });
+
+  // Save to Local Storage whenever history changes
+  useEffect(() => {
+    localStorage.setItem('alchemyHistory', JSON.stringify(history));
+  }, [history]);
   
   // Track specifically WHICH mode is generating to animate the correct button
   const [generatingMode, setGeneratingMode] = useState<AlchemyMode | null>(null);
@@ -58,7 +80,7 @@ const MixingRoomView: React.FC<MixingRoomViewProps> = ({ tracks, queueIds, onRem
   const handleMix = async (mode: AlchemyMode) => {
     if (!analysis) return;
     setGeneratingMode(mode);
-    setGeneratedPrompt(null); // Clear previous
+    setGeneratedPrompt(null); // Clear previous temporarily (optional)
 
     const { commonTags, uniqueTags } = analysis;
     
@@ -76,15 +98,31 @@ const MixingRoomView: React.FC<MixingRoomViewProps> = ({ tracks, queueIds, onRem
     const polished = await generateRefinedPrompt(commonTags, randomSpice, mode);
     
     setGeneratedPrompt(polished);
+    
+    // Add to history
+    const newItem: HistoryItem = {
+        id: Date.now().toString(),
+        prompt: polished,
+        mode: mode,
+        timestamp: Date.now()
+    };
+    setHistory(prev => [newItem, ...prev].slice(0, 10)); // Keep last 10
+    
     setGeneratingMode(null);
   };
 
-  const handleCopy = () => {
-    if (!generatedPrompt) return;
-    navigator.clipboard.writeText(generatedPrompt);
+  const handleCopy = (text: string) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
     setIsCopied(true);
     setTimeout(() => setIsCopied(false), 2000);
   };
+
+  const handleClearHistory = () => {
+    if(confirm("Clear local alchemy history?")) {
+        setHistory([]);
+    }
+  }
 
   if (selectedTracks.length === 0) {
     return (
@@ -161,12 +199,12 @@ const MixingRoomView: React.FC<MixingRoomViewProps> = ({ tracks, queueIds, onRem
       </div>
 
       {/* Right: Transmutation Controls (Compact) */}
-      <div className="lg:col-span-8 flex flex-col p-4 lg:p-6 relative rounded-lg border border-slate-800 bg-slate-900/30 order-1 lg:order-2 overflow-hidden">
+      <div className="lg:col-span-8 flex flex-col p-4 lg:p-6 relative rounded-lg border border-slate-800 bg-slate-900/30 order-1 lg:order-2 overflow-hidden h-full">
         <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-950 to-black -z-10" />
         
-        <div className="flex-1 flex flex-col items-center justify-center w-full max-w-2xl mx-auto">
+        <div className="flex-1 flex flex-col w-full max-w-2xl mx-auto overflow-y-auto custom-scrollbar pr-2">
           
-          <div className="mb-6 text-center">
+          <div className="mb-6 text-center shrink-0">
             <h2 className="text-xl font-serif text-slate-200 tracking-tight flex items-center justify-center gap-2">
                  <FlaskConical className="w-5 h-5 text-amber-600" /> 
                  Alchemical Synthesis
@@ -175,7 +213,7 @@ const MixingRoomView: React.FC<MixingRoomViewProps> = ({ tracks, queueIds, onRem
           </div>
 
           {/* 3-Level Buttons */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full mb-8 shrink-0">
             
             {/* Stabilize */}
             <button
@@ -232,7 +270,7 @@ const MixingRoomView: React.FC<MixingRoomViewProps> = ({ tracks, queueIds, onRem
 
           {/* Result Area */}
           {generatedPrompt && (
-            <div className="w-full animate-in slide-in-from-bottom-2 fade-in duration-500">
+            <div className="w-full animate-in slide-in-from-bottom-2 fade-in duration-500 shrink-0 mb-8">
                 <div className="bg-slate-950 border border-amber-900/30 rounded-lg p-6 relative shadow-2xl">
                     <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-900 via-amber-600 to-rose-900 opacity-50 rounded-t-lg"></div>
                     
@@ -242,7 +280,7 @@ const MixingRoomView: React.FC<MixingRoomViewProps> = ({ tracks, queueIds, onRem
                     
                     <div className="flex justify-center">
                         <button 
-                            onClick={handleCopy}
+                            onClick={() => handleCopy(generatedPrompt)}
                             className={`flex items-center gap-2 text-[10px] uppercase font-bold tracking-widest px-6 py-2 rounded-full border transition-all duration-300 ${
                                 isCopied 
                                 ? 'bg-emerald-900/50 text-emerald-400 border-emerald-500/50 scale-105' 
@@ -251,7 +289,7 @@ const MixingRoomView: React.FC<MixingRoomViewProps> = ({ tracks, queueIds, onRem
                         >
                             {isCopied ? (
                                 <>
-                                    <Check size={14} className="stroke-[3]" /> Copied to Clipboard
+                                    <Check size={14} className="stroke-[3]" /> Copied
                                 </>
                             ) : (
                                 <>
@@ -262,6 +300,50 @@ const MixingRoomView: React.FC<MixingRoomViewProps> = ({ tracks, queueIds, onRem
                     </div>
                 </div>
             </div>
+          )}
+
+          {/* History Section */}
+          {history.length > 0 && (
+             <div className="w-full mt-auto">
+                 <div className="flex items-center justify-between mb-3 border-b border-slate-800/50 pb-2">
+                    <div className="flex items-center gap-2">
+                        <History size={14} className="text-slate-500"/>
+                        <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Recent Transmutations</span>
+                    </div>
+                    <button 
+                        onClick={handleClearHistory}
+                        className="text-[9px] text-slate-600 hover:text-red-500 hover:underline"
+                    >
+                        Clear History
+                    </button>
+                 </div>
+                 <div className="space-y-2">
+                     {history.map((item) => (
+                         <div key={item.id} className="bg-slate-950/50 border border-slate-800 rounded p-3 flex items-start gap-3 hover:bg-slate-900 transition-colors group">
+                             <div className={`mt-0.5 w-1.5 h-1.5 rounded-full shrink-0 ${
+                                 item.mode === 'stabilize' ? 'bg-cyan-500' : 
+                                 item.mode === 'mutate' ? 'bg-rose-500' : 'bg-amber-500'
+                             }`}></div>
+                             <div className="flex-1 min-w-0">
+                                 <p className="text-sm text-slate-400 font-serif italic truncate cursor-pointer hover:text-slate-200" onClick={() => setGeneratedPrompt(item.prompt)}>
+                                     "{item.prompt}"
+                                 </p>
+                                 <p className="text-[10px] text-slate-600 mt-1 flex items-center gap-2">
+                                     <span className="uppercase">{item.mode}</span>
+                                     <span>•</span>
+                                     <span>{new Date(item.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'})}</span>
+                                 </p>
+                             </div>
+                             <button 
+                                onClick={() => handleCopy(item.prompt)}
+                                className="text-slate-600 hover:text-amber-500 p-1 rounded opacity-0 group-hover:opacity-100 transition-all"
+                             >
+                                 <Copy size={12} />
+                             </button>
+                         </div>
+                     ))}
+                 </div>
+             </div>
           )}
 
         </div>

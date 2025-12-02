@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { Track } from '../types';
-import { Play, Pause, Plus, Check, Trash2 } from 'lucide-react';
+import { Play, Pause, Plus, Check, Trash2, Activity } from 'lucide-react';
 
 interface TrackCardProps {
   track: Track;
@@ -70,6 +69,14 @@ const TrackCard: React.FC<TrackCardProps> = ({
           className={`w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-80 group-hover:opacity-100 ${isAudioActive ? 'scale-105 opacity-100' : ''}`}
         />
         
+        {/* BPM Badge - Top Left (DJ style) */}
+        {track.bpm && (
+            <div className="absolute top-0 left-0 bg-black/60 backdrop-blur-sm px-2 py-1 rounded-br-lg border-b border-r border-white/10 flex items-center gap-1 z-10">
+                <Activity size={10} className="text-amber-500" />
+                <span className="text-[10px] font-mono font-bold text-white tracking-wider">{track.bpm}</span>
+            </div>
+        )}
+
         {/* Play Button */}
         <div 
           onClick={handlePlayToggle}
@@ -99,7 +106,7 @@ const TrackCard: React.FC<TrackCardProps> = ({
         {/* Delete Button */}
         <button
           onClick={handleDelete}
-          className="absolute top-2 left-2 p-1.5 rounded bg-slate-900/90 backdrop-blur-sm border border-transparent hover:border-red-900/50 text-slate-500 hover:text-red-500 transition-all z-10 opacity-0 group-hover:opacity-100 hover:bg-red-950/20"
+          className="absolute bottom-2 left-2 p-1.5 rounded bg-slate-900/90 backdrop-blur-sm border border-transparent hover:border-red-900/50 text-slate-500 hover:text-red-500 transition-all z-10 opacity-0 group-hover:opacity-100 hover:bg-red-950/20"
         >
           <Trash2 size={12} />
         </button>
