@@ -1,7 +1,8 @@
+
 import React, { useState, useMemo } from 'react';
 import { Track } from '../types';
 import { generateRefinedPrompt, AlchemyMode } from '../services/geminiService';
-import { X, Sparkles, RefreshCcw, Copy, FlaskConical, ShieldCheck, Zap, Biohazard } from 'lucide-react';
+import { X, Sparkles, RefreshCcw, Copy, FlaskConical, ShieldCheck, Zap, Biohazard, Loader2, Check } from 'lucide-react';
 
 interface MixingRoomViewProps {
   tracks: Track[];
@@ -12,7 +13,12 @@ interface MixingRoomViewProps {
 
 const MixingRoomView: React.FC<MixingRoomViewProps> = ({ tracks, queueIds, onRemoveFromQueue, onClearQueue }) => {
   const [generatedPrompt, setGeneratedPrompt] = useState<string | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
+  
+  // Track specifically WHICH mode is generating to animate the correct button
+  const [generatingMode, setGeneratingMode] = useState<AlchemyMode | null>(null);
+  
+  // Copy feedback state
+  const [isCopied, setIsCopied] = useState(false);
 
   const selectedTracks = useMemo(() => 
     tracks.filter(t => queueIds.includes(t.id)), 
@@ -51,7 +57,7 @@ const MixingRoomView: React.FC<MixingRoomViewProps> = ({ tracks, queueIds, onRem
 
   const handleMix = async (mode: AlchemyMode) => {
     if (!analysis) return;
-    setIsGenerating(true);
+    setGeneratingMode(mode);
     setGeneratedPrompt(null); // Clear previous
 
     const { commonTags, uniqueTags } = analysis;
@@ -70,7 +76,14 @@ const MixingRoomView: React.FC<MixingRoomViewProps> = ({ tracks, queueIds, onRem
     const polished = await generateRefinedPrompt(commonTags, randomSpice, mode);
     
     setGeneratedPrompt(polished);
-    setIsGenerating(false);
+    setGeneratingMode(null);
+  };
+
+  const handleCopy = () => {
+    if (!generatedPrompt) return;
+    navigator.clipboard.writeText(generatedPrompt);
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 2000);
   };
 
   if (selectedTracks.length === 0) {
@@ -167,11 +180,15 @@ const MixingRoomView: React.FC<MixingRoomViewProps> = ({ tracks, queueIds, onRem
             {/* Stabilize */}
             <button
                 onClick={() => handleMix('stabilize')}
-                disabled={isGenerating}
-                className="group flex flex-col items-center justify-center p-4 rounded-lg border bg-slate-950/50 hover:bg-cyan-950/20 border-slate-800 hover:border-cyan-500/50 transition-all hover:-translate-y-1"
+                disabled={generatingMode !== null}
+                className={`group flex flex-col items-center justify-center p-4 rounded-lg border transition-all hover:-translate-y-1 ${
+                    generatingMode === 'stabilize' 
+                    ? 'bg-cyan-950/30 border-cyan-500/50 cursor-wait' 
+                    : 'bg-slate-950/50 hover:bg-cyan-950/20 border-slate-800 hover:border-cyan-500/50 disabled:opacity-50 disabled:hover:translate-y-0 disabled:cursor-not-allowed'
+                }`}
             >
                 <div className="p-2 rounded-full bg-cyan-950/30 text-cyan-500 mb-2 group-hover:scale-110 transition-transform">
-                    <ShieldCheck size={18} />
+                    {generatingMode === 'stabilize' ? <Loader2 className="animate-spin" size={18} /> : <ShieldCheck size={18} />}
                 </div>
                 <span className="text-xs font-bold text-cyan-100 uppercase tracking-widest mb-1">Stabilize</span>
                 <span className="text-[10px] text-cyan-500/60 text-center">High Coherence<br/>Min. Volatility</span>
@@ -180,12 +197,16 @@ const MixingRoomView: React.FC<MixingRoomViewProps> = ({ tracks, queueIds, onRem
             {/* Synthesize */}
             <button
                 onClick={() => handleMix('synthesize')}
-                disabled={isGenerating}
-                className="group flex flex-col items-center justify-center p-4 rounded-lg border bg-slate-950/50 hover:bg-amber-950/20 border-slate-800 hover:border-amber-500/50 transition-all hover:-translate-y-1 relative overflow-hidden"
+                disabled={generatingMode !== null}
+                className={`group flex flex-col items-center justify-center p-4 rounded-lg border transition-all hover:-translate-y-1 relative overflow-hidden ${
+                    generatingMode === 'synthesize'
+                    ? 'bg-amber-950/30 border-amber-500/50 cursor-wait'
+                    : 'bg-slate-950/50 hover:bg-amber-950/20 border-slate-800 hover:border-amber-500/50 disabled:opacity-50 disabled:hover:translate-y-0 disabled:cursor-not-allowed'
+                }`}
             >
-                <div className="absolute inset-0 bg-amber-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className={`absolute inset-0 bg-amber-500/5 opacity-0 transition-opacity ${generatingMode === 'synthesize' ? 'opacity-100' : 'group-hover:opacity-100'}`}></div>
                 <div className="p-2 rounded-full bg-amber-950/30 text-amber-500 mb-2 group-hover:scale-110 transition-transform">
-                    {isGenerating ? <RefreshCcw className="animate-spin" size={18} /> : <Zap size={18} />}
+                    {generatingMode === 'synthesize' ? <Loader2 className="animate-spin" size={18} /> : <Zap size={18} />}
                 </div>
                 <span className="text-xs font-bold text-amber-100 uppercase tracking-widest mb-1">Synthesize</span>
                 <span className="text-[10px] text-amber-500/60 text-center">Balanced Mix<br/>Standard Fusion</span>
@@ -194,11 +215,15 @@ const MixingRoomView: React.FC<MixingRoomViewProps> = ({ tracks, queueIds, onRem
             {/* Mutate */}
             <button
                 onClick={() => handleMix('mutate')}
-                disabled={isGenerating}
-                className="group flex flex-col items-center justify-center p-4 rounded-lg border bg-slate-950/50 hover:bg-rose-950/20 border-slate-800 hover:border-rose-500/50 transition-all hover:-translate-y-1"
+                disabled={generatingMode !== null}
+                className={`group flex flex-col items-center justify-center p-4 rounded-lg border transition-all hover:-translate-y-1 ${
+                    generatingMode === 'mutate'
+                    ? 'bg-rose-950/30 border-rose-500/50 cursor-wait'
+                    : 'bg-slate-950/50 hover:bg-rose-950/20 border-slate-800 hover:border-rose-500/50 disabled:opacity-50 disabled:hover:translate-y-0 disabled:cursor-not-allowed'
+                }`}
             >
                 <div className="p-2 rounded-full bg-rose-950/30 text-rose-500 mb-2 group-hover:scale-110 transition-transform">
-                    <Biohazard size={18} />
+                    {generatingMode === 'mutate' ? <Loader2 className="animate-spin" size={18} /> : <Biohazard size={18} />}
                 </div>
                 <span className="text-xs font-bold text-rose-100 uppercase tracking-widest mb-1">Mutate</span>
                 <span className="text-[10px] text-rose-500/60 text-center">High Chaos<br/>Experimental</span>
@@ -217,10 +242,22 @@ const MixingRoomView: React.FC<MixingRoomViewProps> = ({ tracks, queueIds, onRem
                     
                     <div className="flex justify-center">
                         <button 
-                            onClick={() => navigator.clipboard.writeText(generatedPrompt)}
-                            className="flex items-center gap-2 text-[10px] uppercase font-bold tracking-widest bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white px-4 py-2 rounded-full border border-slate-800 transition-colors"
+                            onClick={handleCopy}
+                            className={`flex items-center gap-2 text-[10px] uppercase font-bold tracking-widest px-6 py-2 rounded-full border transition-all duration-300 ${
+                                isCopied 
+                                ? 'bg-emerald-900/50 text-emerald-400 border-emerald-500/50 scale-105' 
+                                : 'bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border-slate-800'
+                            }`}
                         >
-                            <Copy size={12} /> Copy Result
+                            {isCopied ? (
+                                <>
+                                    <Check size={14} className="stroke-[3]" /> Copied to Clipboard
+                                </>
+                            ) : (
+                                <>
+                                    <Copy size={12} /> Copy Result
+                                </>
+                            )}
                         </button>
                     </div>
                 </div>

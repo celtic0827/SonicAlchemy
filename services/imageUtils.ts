@@ -27,14 +27,27 @@ const hashCode = (str: string) => {
   return Math.abs(hash);
 };
 
-export const generateTrackCover = (title: string): string => {
+interface CoverOptions {
+    bpm?: number;
+    customColors?: string[];
+    emoji?: string;
+}
+
+export const generateTrackCover = (title: string, options: CoverOptions = {}): string => {
   const hash = hashCode(title);
   
-  // Deterministically pick colors and pattern based on hash
-  const colorSet = COLORS[hash % COLORS.length];
-  const pattern = PATTERNS[hash % PATTERNS.length];
-  const direction = hash % 360; // Gradient rotation
+  // Deterministic defaults
+  const defaultColorSet = COLORS[hash % COLORS.length];
+  const colorSet = (options.customColors && options.customColors.length >= 2) ? options.customColors : defaultColorSet;
   
+  // Pattern Logic based on BPM or Hash
+  let pattern = PATTERNS[hash % PATTERNS.length];
+  if (options.bpm) {
+      if (options.bpm < 100) pattern = 'circle'; // Slow -> Circles/Soft
+      else if (options.bpm > 130) pattern = 'diagonal'; // Fast -> Diagonal/Sharp
+      else pattern = 'rect'; // Medium -> Blocky
+  }
+
   // Generate SVG string
   let svgContent = '';
   
@@ -53,34 +66,47 @@ export const generateTrackCover = (title: string): string => {
   `;
 
   // Overlay Pattern
-  const accentColor = "rgba(255, 255, 255, 0.1)";
+  const accentColor = "rgba(255, 255, 255, 0.15)";
   
   if (pattern === 'circle') {
      const cx = (hash * 7) % width;
      const cy = (hash * 13) % height;
      const r = ((hash * 3) % 100) + 50;
+     // Concentric ripples for slow vibes
+     svgContent += `<circle cx="${width/2}" cy="${height/2}" r="${width*0.4}" fill="none" stroke="${accentColor}" stroke-width="2" />`;
+     svgContent += `<circle cx="${width/2}" cy="${height/2}" r="${width*0.3}" fill="none" stroke="${accentColor}" stroke-width="4" />`;
      svgContent += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${accentColor}" />`;
-     svgContent += `<circle cx="${width - cx}" cy="${height - cy}" r="${r * 0.5}" fill="${accentColor}" />`;
   } else if (pattern === 'rect') {
      const x = (hash * 5) % width;
      const y = (hash * 11) % height;
-     svgContent += `<rect x="${x}" y="${y}" width="100" height="100" transform="rotate(${hash % 90} ${x+50} ${y+50})" fill="${accentColor}" />`;
+     // Grid-like for mid tempo
+     svgContent += `<rect x="0" y="0" width="${width}" height="${height}" fill="url(#grid)" />`;
+     svgContent += `<rect x="${x}" y="${y}" width="120" height="120" transform="rotate(${hash % 90} ${x+60} ${y+60})" fill="${accentColor}" />`;
   } else {
-     // Stripe
-     svgContent += `<path d="M0 0 L${width} ${height}" stroke="${accentColor}" stroke-width="20" />`;
-     svgContent += `<path d="M${width} 0 L0 ${height}" stroke="${accentColor}" stroke-width="40" />`;
+     // Stripe/Diagonal for high energy
+     svgContent += `<path d="M0 0 L${width} ${height}" stroke="${accentColor}" stroke-width="40" />`;
+     svgContent += `<path d="M${width} 0 L0 ${height}" stroke="${accentColor}" stroke-width="20" />`;
+     svgContent += `<path d="M0 ${height/2} L${width} ${height/2}" stroke="${accentColor}" stroke-width="10" transform="rotate(45 ${width/2} ${height/2})" />`;
   }
 
-  // Text overlay (First Letter)
-  const firstLetter = title.charAt(0).toUpperCase();
-  svgContent += `
-    <text x="50%" y="50%" dy=".35em" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="120" fill="rgba(255,255,255,0.2)">
-      ${firstLetter}
-    </text>
-  `;
+  // Center Content: Emoji or Text
+  if (options.emoji) {
+    svgContent += `
+        <text x="50%" y="55%" dy=".1em" text-anchor="middle" font-family="Apple Color Emoji, Segoe UI Emoji, sans-serif" font-size="160">
+            ${options.emoji}
+        </text>
+    `;
+  } else {
+    const firstLetter = title.charAt(0).toUpperCase();
+    svgContent += `
+        <text x="50%" y="50%" dy=".35em" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="120" fill="rgba(255,255,255,0.2)">
+        ${firstLetter}
+        </text>
+    `;
+  }
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">${svgContent}</svg>`;
   
   // Base64 encode
-  return `data:image/svg+xml;base64,${btoa(svg)}`;
+  return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
 };

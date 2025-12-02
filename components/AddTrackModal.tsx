@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useCallback } from 'react';
 import { X, Sparkles, Loader2, Upload, Music, Trash2, AlertCircle, Activity } from 'lucide-react';
-import { extractTagsFromPrompt } from '../services/geminiService';
+import { analyzeTrackMetadata } from '../services/geminiService';
 import { detectBPM } from '../services/audioAnalysis';
 
 interface TrackDraft {
@@ -14,12 +14,15 @@ interface TrackDraft {
   bpm?: number;
   isProcessingAudio: boolean;
   isTagging: boolean;
+  // Visual Metadata
+  visualColors?: string[];
+  visualEmoji?: string;
 }
 
 interface AddTrackModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (tracks: { title: string; prompt: string; tags: string[]; audioUrl?: string; bpm?: number }[]) => void;
+  onAdd: (tracks: { title: string; prompt: string; tags: string[]; audioUrl?: string; bpm?: number; visualColors?: string[]; visualEmoji?: string }[]) => void;
   existingTitles: string[];
 }
 
@@ -170,11 +173,19 @@ const AddTrackModal: React.FC<AddTrackModalProps> = ({ isOpen, onClose, onAdd, e
     setDrafts(prev => prev.filter(d => d.id !== id));
   };
 
-  const handleSmartTagging = async (id: string, prompt: string) => {
+  const handleSmartAnalyze = async (id: string, prompt: string) => {
     if (!prompt) return;
     updateDraft(id, { isTagging: true });
-    const extracted = await extractTagsFromPrompt(prompt);
-    updateDraft(id, { isTagging: false, tags: extracted });
+    
+    // Analyze for Tags, Colors, and Emoji all at once
+    const metadata = await analyzeTrackMetadata(prompt);
+    
+    updateDraft(id, { 
+        isTagging: false, 
+        tags: metadata.tags,
+        visualColors: metadata.colors,
+        visualEmoji: metadata.emoji
+    });
   };
 
   // --- Submit ---
@@ -192,7 +203,9 @@ const AddTrackModal: React.FC<AddTrackModalProps> = ({ isOpen, onClose, onAdd, e
       prompt: d.prompt,
       tags: d.tags.length > 0 ? d.tags : d.prompt.split(',').map(s => s.trim()).filter(Boolean),
       audioUrl: d.audioUrl,
-      bpm: d.bpm
+      bpm: d.bpm,
+      visualColors: d.visualColors,
+      visualEmoji: d.visualEmoji
     }));
 
     onAdd(payload);
@@ -276,8 +289,16 @@ const AddTrackModal: React.FC<AddTrackModalProps> = ({ isOpen, onClose, onAdd, e
                 {/* Left: File Info */}
                 <div className="lg:w-1/4 flex flex-col gap-3">
                   <div className="flex items-center gap-3">
-                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center shrink-0 border border-slate-800 ${draft.isProcessingAudio ? 'bg-slate-800' : 'bg-slate-950 text-amber-600'}`}>
-                       {draft.isProcessingAudio ? <Loader2 className="animate-spin w-5 h-5 text-slate-500"/> : <Music className="w-5 h-5"/>}
+                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center shrink-0 border border-slate-800 text-2xl transition-all ${draft.visualColors ? '' : (draft.isProcessingAudio ? 'bg-slate-800' : 'bg-slate-950 text-amber-600')}`}
+                         style={draft.visualColors ? { background: `linear-gradient(135deg, ${draft.visualColors[0]}, ${draft.visualColors[1]})` } : {}}
+                    >
+                       {draft.isProcessingAudio ? (
+                           <Loader2 className="animate-spin w-5 h-5 text-slate-500"/>
+                       ) : draft.visualEmoji ? (
+                           draft.visualEmoji
+                       ) : (
+                           <Music className="w-5 h-5"/>
+                       )}
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs text-slate-300 truncate max-w-full font-medium" title={draft.file.name}>{draft.file.name}</p>
@@ -310,7 +331,7 @@ const AddTrackModal: React.FC<AddTrackModalProps> = ({ isOpen, onClose, onAdd, e
                     />
                     <button
                       type="button"
-                      onClick={() => handleSmartTagging(draft.id, draft.prompt)}
+                      onClick={() => handleSmartAnalyze(draft.id, draft.prompt)}
                       disabled={!draft.prompt || draft.isTagging}
                       className="absolute right-2 bottom-2 text-[10px] flex items-center gap-1.5 bg-slate-900 text-amber-500 hover:text-amber-400 hover:bg-slate-800 px-2 py-1 rounded border border-slate-800 hover:border-amber-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wider font-bold"
                     >

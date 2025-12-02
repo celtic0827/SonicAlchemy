@@ -53,17 +53,22 @@ const App = () => {
 
   // --- Actions ---
 
-  const handleImportTracks = async (newTracksData: { title: string; prompt: string; tags: string[]; audioUrl?: string; bpm?: number }[]) => {
+  const handleImportTracks = async (newTracksData: { title: string; prompt: string; tags: string[]; audioUrl?: string; bpm?: number; visualColors?: string[]; visualEmoji?: string }[]) => {
     
     const newTracks: Track[] = newTracksData.map(data => ({
       id: Math.random().toString(36).substr(2, 9) + Date.now().toString(),
       title: data.title,
       prompt: data.prompt,
       tags: data.tags,
-      coverUrl: generateTrackCover(data.title),
+      // Pass the AI-detected Visual metadata to the generator
+      coverUrl: generateTrackCover(data.title, { 
+          bpm: data.bpm, 
+          customColors: data.visualColors, 
+          emoji: data.visualEmoji 
+      }),
       createdAt: Date.now(),
       audioUrl: data.audioUrl,
-      bpm: data.bpm, // FIXED: Ensure BPM is assigned to the new track object
+      bpm: data.bpm,
     }));
     
     setTracks(prev => [...newTracks, ...prev]);
@@ -96,13 +101,15 @@ const App = () => {
     const track = tracks.find(t => t.id === id);
     if (!track) return;
 
-    // Regenerate cover if title changes? Maybe optional. 
-    // Let's keep the cover for continuity, or regenerate?
-    // User expects rename. Let's regenerate cover to match "Algorithm Art" logic, 
-    // OR keep old one. Let's regenerate to stay consistent with the "Title = DNA" philosophy.
-    const newCover = generateTrackCover(newTitle);
+    // Regenerate cover to stay consistent with the "Title = DNA" philosophy, 
+    // BUT we need to preserve the AI visual data (emoji/colors) if we had it.
+    // However, we don't store raw emoji/colors in the Track object currently (only coverUrl).
+    // So for now, renaming regenerates based on Title + BPM only (losing custom emoji), 
+    // OR we just keep the old cover.
+    // Let's keep the old coverUrl to preserve the AI emoji art.
+    // const newCover = generateTrackCover(newTitle, { bpm: track.bpm }); 
 
-    const updatedTrack = { ...track, title: newTitle, coverUrl: newCover };
+    const updatedTrack = { ...track, title: newTitle }; // Keep coverUrl
     
     setTracks(prev => prev.map(t => t.id === id ? updatedTrack : t));
     

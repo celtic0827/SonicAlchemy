@@ -1,6 +1,12 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 
 export type AlchemyMode = 'stabilize' | 'synthesize' | 'mutate';
+
+export interface TrackMetadata {
+    tags: string[];
+    colors: string[]; // [primary, secondary] hex codes
+    emoji: string;
+}
 
 // Initialize Gemini client only if API key is present
 const getAiClient = () => {
@@ -77,10 +83,21 @@ export const generateRefinedPrompt = async (
   }
 };
 
-export const extractTagsFromPrompt = async (prompt: string): Promise<string[]> => {
+/**
+ * Analyzes the prompt to extract:
+ * 1. Musical Tags
+ * 2. Visual Theme (Colors)
+ * 3. Icon (Emoji)
+ */
+export const analyzeTrackMetadata = async (prompt: string): Promise<TrackMetadata> => {
   const ai = getAiClient();
-  // Simple fallback logic: split by commas or newlines
-  const simpleExtract = (text: string) => text.split(/[,|\n]/).map(s => s.trim()).filter(s => s.length > 0);
+  
+  // Fallback
+  const simpleExtract = (text: string): TrackMetadata => ({
+      tags: text.split(/[,|\n]/).map(s => s.trim()).filter(s => s.length > 0).slice(0, 5),
+      colors: ['#334155', '#475569'], // Slate default
+      emoji: '🎵'
+  });
 
   if (!ai) {
     return simpleExtract(prompt);
@@ -89,14 +106,33 @@ export const extractTagsFromPrompt = async (prompt: string): Promise<string[]> =
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
-      contents: `Extract the top 5-8 most relevant musical style, genre, mood, or instrument tags from this description: "${prompt}".
-      Return them as a comma-separated list. No numbering. Example output: "Jazz, Piano, Melancholic".`,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+                tags: { type: Type.ARRAY, items: { type: Type.STRING } },
+                colors: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Two hex color codes representing the mood (e.g. Sad=#1e3a8a, Energetic=#ef4444)" },
+                emoji: { type: Type.STRING, description: "A single emoji best representing the song theme" }
+            }
+        }
+      },
+      contents: `Analyze this music description: "${prompt}". 
+      1. Extract top 5-8 musical tags (genre, mood, instrument).
+      2. Select 2 hex colors that represent the mood/key (e.g. Dark/Minor -> Cool/Dark colors, Happy/Major -> Warm/Bright colors).
+      3. Choose 1 single emoji that best fits the theme.`,
     });
     
     const text = response.text;
     if (!text) throw new Error("No text generated");
 
-    return text.split(',').map(s => s.trim()).filter(s => s.length > 0);
+    const json = JSON.parse(text);
+    return {
+        tags: json.tags || [],
+        colors: json.colors?.length >= 2 ? json.colors : ['#334155', '#475569'],
+        emoji: json.emoji || '🎵'
+    };
+
   } catch (error) {
     console.warn("Gemini API Extraction Warning (using simple split):", error);
     return simpleExtract(prompt);
